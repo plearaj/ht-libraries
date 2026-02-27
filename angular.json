@@ -3,5 +3,199 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
+    "ht-quick-angular-table": {
+      "projectType": "library",
+      "root": "projects/ht-quick-angular-table",
+      "sourceRoot": "projects/ht-quick-angular-table/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/ht-quick-angular-table/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/ht-quick-angular-table/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/ht-quick-angular-table/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "tsConfig": "projects/ht-quick-angular-table/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
+          }
+        }
+      }
+    },
+    "ht-software": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/ht-software",
+      "sourceRoot": "projects/ht-software/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": "dist/ht-software",
+            "index": "projects/ht-software/src/index.html",
+            "browser": "projects/ht-software/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/ht-software/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/ht-software/public"
+              }
+            ],
+            "styles": [
+              "projects/ht-software/src/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "ht-software:build:production"
+            },
+            "development": {
+              "buildTarget": "ht-software:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "projects/ht-software/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/ht-software/public"
+              }
+            ],
+            "styles": [
+              "projects/ht-software/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    },
+    "ht-quick-ngxfire": {
+      "projectType": "library",
+      "root": "projects/ht-quick-ngxfire",
+      "sourceRoot": "projects/ht-quick-ngxfire/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/ht-quick-ngxfire/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/ht-quick-ngxfire/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/ht-quick-ngxfire/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "tsConfig": "projects/ht-quick-ngxfire/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
+          }
+        }
+      }
+    },
+    "ht-camera-upload": {
+      "projectType": "library",
+      "root": "projects/ht-camera-upload",
+      "sourceRoot": "projects/ht-camera-upload/src",
+      "prefix": "ht",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/ht-camera-upload/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/ht-camera-upload/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "projects/ht-camera-upload/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": false
   }
 }

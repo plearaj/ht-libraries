@@ -8,8 +8,10 @@
 
 # Node
 /node_modules
+**/node_modules
 npm-debug.log
 yarn-error.log
+package-lock.json
 
 # IDEs and editors
 .idea/
@@ -40,3 +42,37 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Environment and configuration
+.env
+.env.local
+.env.*.local
+*.local
+
+# Build artifacts
+*.tsbuildinfo
+.angular/
+
+# Firebase
+.firebase/
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Logs
+logs/
+*.log
+lerna-debug.log*
+.npm
+.eslintcache
+
+# Testing
+/cypress/videos
+/cypress/screenshots
+.nyc_output
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

@@ -5,6 +5,17 @@
   "compilerOptions": {
     "outDir": "./dist/out-tsc",
     "strict": true,
+    "paths": {
+      "ht-camera-upload": [
+        "./dist/ht-camera-upload"
+      ],
+      "ht-quick-angular-table": [
+        "./dist/ht-quick-angular-table"
+      ],
+      "ht-quick-ngxfire": [
+        "./dist/ht-quick-ngxfire"
+      ]
+    },
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
@@ -23,5 +34,13 @@
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
     "strictTemplates": true
-  }
+  },
+  "references": [
+    {
+      "path": "./projects/ht-camera-upload/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/ht-camera-upload/tsconfig.spec.json"
+    }
+  ]
 }
