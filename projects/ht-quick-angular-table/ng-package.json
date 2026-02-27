@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../dist/ht-quick-angular-table",
+  "lib": {
+    "entryFile": "src/public-api.ts"
+  },
+  "allowedNonPeerDependencies": [
+    "@angular/material",
+    "@angular/cdk",
+    "chart.js",
+    "ng2-charts",
+    "@google/generative-ai",
+    "@anthropic-ai/sdk"
+  ]
+}

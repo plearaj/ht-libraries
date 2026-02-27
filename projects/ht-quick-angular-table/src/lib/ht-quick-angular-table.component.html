@@ -1,0 +1,94 @@
+<!--Simple filter-->
+@if (showSimpleFilter()) {
+  <mat-form-field>
+    <input matInput placeholder="Filter" [formControl]="simpleFilterControl">
+  </mat-form-field>
+}
+<mat-table [dataSource]="datasource()" [formGroup]="tableFormGroup">
+      @for (column of displayedColumns(); track column) {
+        <ng-container [matColumnDef]="column.columnDataName()" formArrayName="tableFormArray">
+          <!-- Selection Column Header -->
+          @if (column.columnDataType() === 'select') {
+            <mat-header-cell *matHeaderCellDef mat-sort-header class="selection-column">
+              <mat-checkbox (change)="$event ? masterToggle() : null" [disabled]="!datasource().filteredData.length"
+                            [checked]="selection.hasValue() && isAllSelected()" (click)="$event.stopPropagation()"
+                            [indeterminate]="selection.hasValue() && !isAllSelected()"></mat-checkbox>
+            </mat-header-cell>
+          } @else if (column.columnDataType() === 'drag') {
+            <!-- Drag And Drop Column Header -->
+            <mat-header-cell *matHeaderCellDef class="drag-column center-cell-content"></mat-header-cell>
+          } @else if (column.columnDataType() === 'action') {
+            <!-- Action Column Header -->
+            <mat-header-cell *matHeaderCellDef class="action-column">
+              {{ column.columnHeader() }}
+            </mat-header-cell>
+          } @else {
+            <!-- Regular Column Header -->
+            <mat-header-cell *matHeaderCellDef> {{ column.columnHeader() }} </mat-header-cell>
+          }
+
+          <!-- Filter Column Headers -->
+          @if (showColumnFilter()) {
+            <mat-header-cell *matHeaderCellDef [formGroup]="filterFormGroup">
+              @if (column.columnDataType() === 'date') {
+                <!-- Date Filter Column Header -->
+              } @else if (column.columnDataType() === 'dateRange') {
+                <!-- Date Range Filter Column Header -->
+              } @else {
+                <input matInput [formControlName]="column.filterName()">
+              }
+            </mat-header-cell>
+          }
+          <!-- Table Cells -->
+
+
+          @if (column.columnDataType() === 'drag') {
+            <!-- Drag and Drop Cell -->
+            <mat-cell *matCellDef="let row; let i = index;" class="drag-column center-cell-content">
+              <button mat-icon-button (mousedown)="disableDragAndDrop = false">
+                <mat-icon>drag_indicator</mat-icon>
+              </button>
+            </mat-cell>
+          } @else if (column.columnDataType() === 'select') {
+            <!-- Row Selection Cell -->
+            <mat-cell *matCellDef="let row; let i = index;" class="selection-column">
+              <mat-checkbox (click)="clickHandler($event, i)"></mat-checkbox>
+            </mat-cell>
+          } @else if (column.columnDataType() === 'clickableCell') {
+            <mat-cell  *matCellDef="let element">
+              {{ element[column.columnDataName()] }}
+            </mat-cell>
+          } @else {
+            <mat-cell *matCellDef="let element">
+              @if (column.columnDataType() === 'date' || column.columnDataType() === 'dateRange') {
+                {{element[column.columnDataName()] | date }}
+              } @else if (column.columnDataType() === 'object') {
+                {{ getObjectDisplayValue(column, element)() }}
+              } @else if (column.columnDataType() === 'hyperlink') {
+                <a [href]="getLink(column, element)()">{{ element[column.columnDataName()] }}</a>
+              } @else {
+                {{ element[column.columnDataName()] }}
+              }
+            </mat-cell>
+          }
+        </ng-container>
+      }
+      <!--  Row definitions:-->
+      @if (showColumnFilter()) {
+        <mat-header-row *matHeaderRowDef="filterColumns()"></mat-header-row>
+      }
+      <mat-header-row *matHeaderRowDef="columns()"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: columns()"></mat-row>
+    </mat-table>
+    <!--Toolbar-->
+    <mat-toolbar class="flex-container">
+      @if (tableSettings.allowAddData()) {
+        <button mat-button (click)="addData()">{{ tableSettings.addButton.buttonText }}</button>
+      }
+      <span class="flex-spacer"></span>
+      @if (showPaginator()) {
+        <mat-paginator
+          [pageSize]="paginatorSettings.pageSize()" [pageSizeOptions]="pageSizeOptions()"
+          [showFirstLastButtons]="paginatorSettings.showFirstLastButtons()" [length]="length()"></mat-paginator>
+      }
+    </mat-toolbar>
