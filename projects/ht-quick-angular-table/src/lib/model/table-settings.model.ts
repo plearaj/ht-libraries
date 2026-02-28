@@ -80,6 +80,9 @@ export class TableSettings {
     dataInteractionSettings: DynamicMatTableDataInteractionSettings, readonly allowDragAndDrop: boolean,
     readonly noRecordMessage: string,
   ) {
+    if (columns.length === 0) {
+      throw new Error('[ht-quick-angular-table] TableSettings requires at least one column definition.');
+    }
     this.showFilter = filterSettings.showFilter;
     this.filterType = filterSettings.filterType;
     this.tableColumns = this.createTableColumns(columns, this.filterType);

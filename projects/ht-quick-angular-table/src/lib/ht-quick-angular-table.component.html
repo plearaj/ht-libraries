@@ -4,12 +4,12 @@
     <input matInput placeholder="Filter" [formControl]="simpleFilterControl">
   </mat-form-field>
 }
-<mat-table [dataSource]="datasource()" [formGroup]="tableFormGroup">
+<mat-table [dataSource]="datasource()" [formGroup]="tableFormGroup" matSort>
       @for (column of displayedColumns(); track column) {
         <ng-container [matColumnDef]="column.columnDataName()" formArrayName="tableFormArray">
           <!-- Selection Column Header -->
           @if (column.columnDataType() === 'select') {
-            <mat-header-cell *matHeaderCellDef mat-sort-header class="selection-column">
+            <mat-header-cell *matHeaderCellDef class="selection-column">
               <mat-checkbox (change)="$event ? masterToggle() : null" [disabled]="!datasource().filteredData.length"
                             [checked]="selection.hasValue() && isAllSelected()" (click)="$event.stopPropagation()"
                             [indeterminate]="selection.hasValue() && !isAllSelected()"></mat-checkbox>
@@ -24,7 +24,7 @@
             </mat-header-cell>
           } @else {
             <!-- Regular Column Header -->
-            <mat-header-cell *matHeaderCellDef> {{ column.columnHeader() }} </mat-header-cell>
+            <mat-header-cell *matHeaderCellDef mat-sort-header> {{ column.columnHeader() }} </mat-header-cell>
           }
 
           <!-- Filter Column Headers -->
@@ -54,6 +54,15 @@
             <mat-cell *matCellDef="let row; let i = index;" class="selection-column">
               <mat-checkbox (click)="clickHandler($event, i)"></mat-checkbox>
             </mat-cell>
+          } @else if (column.columnDataType() === 'action') {
+            <!-- Action Cell -->
+            <mat-cell *matCellDef="let element" class="action-column">
+              @for (btn of getActionButtons(); track btn.icon.name) {
+                <button mat-icon-button (click)="onRowAction(btn.actionType, element)">
+                  <mat-icon>{{ btn.icon.name }}</mat-icon>
+                </button>
+              }
+            </mat-cell>
           } @else if (column.columnDataType() === 'clickableCell') {
             <mat-cell  *matCellDef="let element">
               {{ element[column.columnDataName()] }}
@@ -79,6 +88,9 @@
       }
       <mat-header-row *matHeaderRowDef="columns()"></mat-header-row>
       <mat-row *matRowDef="let row; columns: columns()"></mat-row>
+      <tr *matNoDataRow>
+        <td [attr.colspan]="columns().length">{{ tableSettings.noRecordMessage }}</td>
+      </tr>
     </mat-table>
     <!--Toolbar-->
     <mat-toolbar class="flex-container">

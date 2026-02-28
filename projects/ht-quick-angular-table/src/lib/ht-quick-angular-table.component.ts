@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnDestroy, OnInit, output, signal, Signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, AfterViewInit, output, signal, Signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { MatSort } from '@angular/material/sort';
@@ -17,6 +17,7 @@ import { PaginatorSettings } from './model/paginator-settings.model';
 import { HtQuickAngularTableService } from './ht-quick-angular-table.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { Icon, ButtonColor } from './model/dynamic-mat-table-button.model';
 
 @Component({
   selector: 'ht-quick-angular-table',
@@ -25,7 +26,7 @@ import { DatePipe } from '@angular/common';
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class HtQuickAngularTableComponent implements OnInit, OnDestroy {
+export class HtQuickAngularTableComponent implements OnInit, AfterViewInit, OnDestroy {
   // Injected dependencies using Angular 21 inject()
   private tableService = inject(HtQuickAngularTableService);
   private router = inject(Router);
@@ -52,7 +53,7 @@ export class HtQuickAngularTableComponent implements OnInit, OnDestroy {
   sort = viewChild.required<MatSort>(MatSort);
   //Paginator Setting Variables
   showPaginator = signal<boolean>(false);
-  paginator = viewChild.required<MatPaginator>(MatPaginator);
+  paginator = viewChild<MatPaginator>(MatPaginator);
   paginatorSettings!: PaginatorSettings;
   length = computed<number>(() => {
     return this.datasource().data.length;
@@ -61,6 +62,7 @@ export class HtQuickAngularTableComponent implements OnInit, OnDestroy {
   //Selection Model Variables:
   selection = new SelectionModel<any>(true, []);
   rowSelected = output<SelectionModel<any>>();
+  rowAction = output<{ action: string; row: any }>();
   lastChecked!: number;
   //Drag and Drop Variables:
   disableDragAndDrop = true;
@@ -68,6 +70,14 @@ export class HtQuickAngularTableComponent implements OnInit, OnDestroy {
   tableFormGroup = new FormGroup({
     tableFormArray: this.tableFormArray
   });
+
+  ngAfterViewInit() {
+    this.datasource().sort = this.sort();
+    const paginator = this.paginator();
+    if (paginator) {
+      this.datasource().paginator = paginator;
+    }
+  }
 
   ngOnInit() {
     this.tableSettingsSubscription = this.tableService.tableSetting$.subscribe(tableSettings => {
@@ -232,6 +242,29 @@ export class HtQuickAngularTableComponent implements OnInit, OnDestroy {
     } else {
 
     }
+  }
+
+  getActionButtons(): { icon: Icon; actionType: string }[] {
+    const options = this.tableSettings.actionOptions;
+    if (!options) return [];
+    if (options.actionType === 'menu' && Array.isArray(options.icon)) {
+      return (options.icon as Icon[]).map(icon => ({ icon, actionType: options.actionType }));
+    }
+    if (options.icon && !Array.isArray(options.icon) && typeof options.icon !== 'function' && 'name' in options.icon) {
+      return [{ icon: options.icon as Icon, actionType: options.actionType }];
+    }
+    const defaults: Record<string, Icon> = {
+      edit: { name: 'edit', color: ButtonColor.Default },
+      delete: { name: 'delete', color: ButtonColor.Warn },
+      link: { name: 'open_in_new', color: ButtonColor.Default },
+      dialog: { name: 'open_in_new', color: ButtonColor.Default },
+    };
+    const icon = defaults[options.actionType];
+    return icon ? [{ icon, actionType: options.actionType }] : [];
+  }
+
+  onRowAction(action: string, row: any) {
+    this.rowAction.emit({ action, row });
   }
 
   ngOnDestroy() {
