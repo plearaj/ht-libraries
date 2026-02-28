@@ -14,3 +14,5 @@ export { HtTableChartComponent } from './lib/chart/ht-table-chart.component';
 export type { ChartConfig, ChartType } from './lib/chart/chart.types';
 export { HtTableInsightsComponent } from './lib/insights/ht-table-insights.component';
 export type { InsightsConfig, ColumnStatistics } from './lib/insights/insights.types';
+export { HtTableBuilderService } from './lib/builder/ht-table-builder.service';
+export type { BuilderMessage, BuilderResult } from './lib/builder/builder.types';
