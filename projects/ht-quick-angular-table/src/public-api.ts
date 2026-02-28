@@ -16,3 +16,15 @@ export { HtTableInsightsComponent } from './lib/insights/ht-table-insights.compo
 export type { InsightsConfig, ColumnStatistics } from './lib/insights/insights.types';
 export { HtTableBuilderService } from './lib/builder/ht-table-builder.service';
 export type { BuilderMessage, BuilderResult } from './lib/builder/builder.types';
+export { HtTableAgentService } from './lib/agent/ht-table-agent.service';
+export type {
+  AgentConfig,
+  AgentAction,
+  AgentTrigger,
+  AgentNextStep,
+  AgentRunMode,
+  AgentRunResult,
+  AgentActionEvent,
+  AgentFailureEvent,
+  AgentActionContext,
+} from './lib/agent/agent.types';
