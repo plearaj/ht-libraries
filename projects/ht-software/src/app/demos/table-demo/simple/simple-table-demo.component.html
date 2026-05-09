@@ -1,0 +1,20 @@
+<div class="demo-container">
+  <div class="demo-header">
+    <a mat-button routerLink="/table-demo" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      All table demos
+    </a>
+    <h1>Simple Table</h1>
+    <p class="demo-description">
+      The minimum viable setup: four columns, simple text filter, and pagination.
+      Configure once, plug in data, done.
+    </p>
+  </div>
+
+  <section class="demo-section">
+    <ht-quick-angular-table></ht-quick-angular-table>
+  </section>
+
+  <h2>Source</h2>
+  <app-code-snippet [code]="exampleCode" language="typescript" />
+</div>

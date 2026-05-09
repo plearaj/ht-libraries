@@ -1,0 +1,13 @@
+{
+  "name": "ht-quick-ngxfire",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0"
+  },
+  "dependencies": {
+    "@angular/fire": "next",
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": false
+}

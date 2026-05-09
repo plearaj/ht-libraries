@@ -1,0 +1,520 @@
+openapi: 3.1.0
+info:
+  title: ht-table-agent Backend API
+  version: 1.0.0
+  description: Python backend REST API for ht-quick-angular-table data skills and AI agent.
+
+servers:
+  - url: "{backendUrl}"
+    variables:
+      backendUrl:
+        default: "http://localhost:8000"
+
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate and obtain JWT tokens
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Refresh access token using HttpOnly cookie refresh token
+      tags: [Auth]
+      responses:
+        "200":
+          description: Token refreshed
+          headers:
+            Set-Cookie:
+              description: Rotated HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Invalidate refresh token
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+
+  /agent/describe:
+    post:
+      operationId: describeTable
+      summary: Generate table configuration from natural language description
+      tags: [Agent]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DescribeRequest"
+      responses:
+        "200":
+          description: Table configuration or clarification question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuilderResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /agent/refine:
+    post:
+      operationId: refineTable
+      summary: Refine existing table configuration with additional instructions
+      tags: [Agent]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefineRequest"
+      responses:
+        "200":
+          description: Updated table configuration or clarification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuilderResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /skills/excel/upload:
+    post:
+      operationId: uploadExcel
+      summary: Upload and parse an Excel/CSV file
+      tags: [Skills]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Excel (.xlsx, .xls) or CSV (.csv) file
+                sheet:
+                  type: string
+                  description: Sheet name to parse (default is first sheet)
+      responses:
+        "200":
+          description: Parsed data result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResult"
+        "400":
+          description: Invalid file format or empty file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          description: File exceeds maximum size
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /skills/excel/sheets:
+    post:
+      operationId: listSheets
+      summary: List available sheets in an uploaded Excel file
+      tags: [Skills]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: List of sheet names
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sheets:
+                    type: array
+                    items:
+                      type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /skills/api/pull:
+    post:
+      operationId: pullApiData
+      summary: Pull data from an external API endpoint
+      tags: [Skills]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiPullRequest"
+      responses:
+        "200":
+          description: Parsed data result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResult"
+        "400":
+          description: Invalid API response or configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          description: Upstream API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "504":
+          description: Upstream API timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /skills/database/query:
+    post:
+      operationId: queryDatabase
+      summary: Execute a read-only database query
+      tags: [Skills]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseQueryRequest"
+      responses:
+        "200":
+          description: Query result data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResult"
+        "400":
+          description: Invalid query (write operation or syntax error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "408":
+          description: Query timeout exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Database connection failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /skills/database/test:
+    post:
+      operationId: testDatabaseConnection
+      summary: Test database connectivity without executing a query
+      tags: [Skills]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dbType, connectionString]
+              properties:
+                dbType:
+                  type: string
+                  enum: [postgresql, mysql, sqlite]
+                connectionString:
+                  type: string
+      responses:
+        "200":
+          description: Connection successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected:
+                    type: boolean
+                  serverVersion:
+                    type: string
+        "502":
+          description: Connection failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ValidationError:
+      description: Request body validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [apiKey]
+      properties:
+        apiKey:
+          type: string
+          description: Developer-configured API key for the backend
+
+    LoginResponse:
+      type: object
+      required: [accessToken, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+        expiresIn:
+          type: integer
+          description: Token lifetime in seconds
+
+    DescribeRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          maxLength: 2000
+          description: Natural language table description
+        sessionHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+          description: Previous conversation messages for context
+
+    RefineRequest:
+      type: object
+      required: [message, currentConfig]
+      properties:
+        message:
+          type: string
+          maxLength: 2000
+        currentConfig:
+          type: object
+          description: Current TableSettings-compatible JSON
+        sessionHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+
+    BuilderResponse:
+      type: object
+      properties:
+        tableSettings:
+          type: object
+          description: Generated TableSettings-compatible JSON (present if AI produced config)
+        clarification:
+          type: string
+          description: Follow-up question from AI (present if more info needed)
+
+    ApiPullRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+        method:
+          type: string
+          enum: [GET, POST]
+          default: GET
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        body:
+          description: Request body (POST only)
+        jsonPath:
+          type: string
+          description: JSONPath expression for data extraction
+
+    DatabaseQueryRequest:
+      type: object
+      required: [dbType, connectionString, query]
+      properties:
+        dbType:
+          type: string
+          enum: [postgresql, mysql, sqlite]
+        connectionString:
+          type: string
+        query:
+          type: string
+          description: Read-only SQL query (SELECT only)
+        rowLimit:
+          type: integer
+          default: 10000
+          maximum: 100000
+        timeoutSeconds:
+          type: integer
+          default: 30
+          maximum: 300
+
+    DataResult:
+      type: object
+      required: [columns, rows, totalRows, truncated]
+      properties:
+        columns:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ColumnDefinition"
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        totalRows:
+          type: integer
+          minimum: 0
+        truncated:
+          type: boolean
+        metadata:
+          $ref: "#/components/schemas/ResultMetadata"
+
+    ColumnDefinition:
+      type: object
+      required: [name, dataName, dataType]
+      properties:
+        name:
+          type: string
+        dataName:
+          type: string
+          pattern: "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        dataType:
+          type: string
+          enum: [string, number, date, boolean]
+
+    ResultMetadata:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [excel, api, database]
+        sheetName:
+          type: string
+        sheetNames:
+          type: array
+          items:
+            type: string
+        apiStatusCode:
+          type: integer
+        queryExecutionMs:
+          type: number
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Error category code
+        message:
+          type: string
+          description: User-facing error message
+        details:
+          description: Additional context (never includes credentials)

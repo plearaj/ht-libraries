@@ -1,0 +1,186 @@
+<div class="demo-container">
+  <div class="demo-header">
+    <a mat-button routerLink="/table-demo" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      All table demos
+    </a>
+    <h1>Kitchen Sink</h1>
+    <p class="demo-description">
+      Every feature exported by <code>ht-quick-angular-table</code>, wired up against a single sample dataset.
+      Backend-dependent features (AI builder, AI summary, agent, skills) respond via a mock service —
+      swap in <code>provideHtBackend()</code> with a real URL + key to go live.
+    </p>
+  </div>
+
+  <mat-tab-group>
+    <!-- Tab 1: Core Table -->
+    <mat-tab label="Core Table">
+      <section class="demo-section">
+        <h2>Multi-type columns, selection, actions, add / delete / save</h2>
+        <ul class="feature-list">
+          <li>String, number, boolean, and date-string columns</li>
+          <li>Object column — computed <code>Supplier</code> display from nested fields</li>
+          <li>Hyperlink column — clickable <code>Docs</code> link</li>
+          <li>Simple filter + sortable headers</li>
+          <li>Pagination with <code>pageSizeOptions: [5, 10, 25]</code></li>
+          <li>Multi-row selection (shift-click to range-select) + snackbar notification</li>
+          <li>Row action menu with edit + delete icons</li>
+          <li>Toolbar buttons: <code>Add row</code>, <code>Delete selected</code>, <code>Save</code></li>
+        </ul>
+        <ht-quick-angular-table></ht-quick-angular-table>
+      </section>
+      <app-code-snippet [code]="tableCode" language="typescript" />
+    </mat-tab>
+
+    <!-- Tab 2: Visualisation -->
+    <mat-tab label="Charts & Insights">
+      <section class="demo-section">
+        <h2>All three chart types</h2>
+        <div class="chart-grid">
+          <div class="chart-cell"><h3>Bar</h3>  <ht-table-chart [config]="barChart"  [data]="products()" /></div>
+          <div class="chart-cell"><h3>Line</h3> <ht-table-chart [config]="lineChart" [data]="products()" /></div>
+          <div class="chart-cell"><h3>Pie</h3>  <ht-table-chart [config]="pieChart"  [data]="products()" /></div>
+        </div>
+      </section>
+      <app-code-snippet [code]="chartCode" language="html" />
+
+      <section class="demo-section">
+        <h2>Insights with AI summary</h2>
+        <p>Per-column statistics plus a narrative summary from the backend (mocked).</p>
+        <ht-table-insights [config]="insightsConfig" [data]="products()" />
+      </section>
+      <app-code-snippet [code]="insightsCode" language="html" />
+    </mat-tab>
+
+    <!-- Tab 3: Skills -->
+    <mat-tab label="Data-source Skills">
+      <section class="demo-section">
+        <h2>Excel, API, and Database ingestion</h2>
+        <p>
+          Pick a skill below — each renders its own input component. Submitting any of them calls the
+          mock backend and echoes a result.
+        </p>
+        <ht-skill-menu (skillSelected)="onSkillSelected($event)" />
+
+        <mat-divider class="section-divider"></mat-divider>
+
+        @if (selectedSkill(); as skill) {
+          <h3>{{ skill.name }}</h3>
+          @if (skill.id === 'excel-upload') {
+            <ht-excel-input
+              [config]="$any(skill.configSchema)"
+              (fileSelected)="onExcelFileSelected($event)" />
+          } @else if (skill.id === 'api-pull') {
+            <ht-api-input (configSubmitted)="onApiConfigSubmitted($event)" />
+          } @else if (skill.id === 'database') {
+            <ht-database-input (configSubmitted)="onDatabaseConfigSubmitted($event)" />
+          }
+          @if (skillResultMessage()) {
+            <div class="result-banner success">
+              <mat-icon>check_circle</mat-icon>
+              <span>{{ skillResultMessage() }}</span>
+            </div>
+          }
+        } @else {
+          <p class="hint">Select a data source to render its input component.</p>
+        }
+      </section>
+      <app-code-snippet [code]="skillsCode" language="typescript" />
+    </mat-tab>
+
+    <!-- Tab 4: AI Builder -->
+    <mat-tab label="AI Table Builder">
+      <section class="demo-section">
+        <h2>Describe + Refine</h2>
+        <p>Natural-language table generation. Try the word <em>employee</em> to see a structured response.</p>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Describe your table</mat-label>
+          <textarea matInput rows="3" [(ngModel)]="builderPrompt"
+            placeholder="A table of employees with name, department, salary, and hire date"></textarea>
+        </mat-form-field>
+        <div class="builder-actions">
+          <button mat-raised-button color="primary" (click)="runBuilder()" [disabled]="builderLoading()">
+            <mat-icon>auto_awesome</mat-icon> Build table
+          </button>
+        </div>
+
+        <mat-divider class="section-divider"></mat-divider>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Refine the current table</mat-label>
+          <input matInput [(ngModel)]="refinePrompt" placeholder="Add an email column">
+        </mat-form-field>
+        <div class="builder-actions">
+          <button mat-stroked-button (click)="refineBuilder()" [disabled]="builderLoading()">
+            <mat-icon>tune</mat-icon> Refine
+          </button>
+          @if (builderLoading()) { <span class="hint">Working...</span> }
+        </div>
+
+        @if (builderError()) {
+          <div class="result-banner error"><mat-icon>warning</mat-icon><span>{{ builderError() }}</span></div>
+        }
+        @if (builderResultJson()) {
+          <pre class="builder-result">{{ builderResultJson() }}</pre>
+        }
+      </section>
+      <app-code-snippet [code]="builderCode" language="typescript" />
+    </mat-tab>
+
+    <!-- Tab 5: Agent -->
+    <mat-tab label="Autonomous Agent">
+      <section class="demo-section">
+        <h2>On-demand agent</h2>
+        <p>
+          Row trigger flags out-of-stock items and chains to a restock alert.
+          Table trigger reports total quantity.
+        </p>
+        <div class="builder-actions">
+          <button mat-raised-button color="primary" (click)="runAgent()" [disabled]="agentRunning()">
+            <mat-icon>smart_toy</mat-icon> Run agent
+          </button>
+          <button mat-stroked-button (click)="toggleScheduledAgent()">
+            <mat-icon>schedule</mat-icon>
+            {{ agentRunMode() === 'on-demand' ? 'Start scheduled (3s interval)' : 'Stop scheduled' }}
+          </button>
+          @if (agentRunning()) { <span class="hint">Running...</span> }
+        </div>
+
+        @if (agentResult(); as r) {
+          <div class="result-banner success">
+            <mat-icon>check_circle</mat-icon>
+            <span>{{ r.actionsInvoked }} actions, {{ r.failures }} failures, {{ r.durationMs }}ms</span>
+          </div>
+        }
+        @if (agentLog().length > 0) {
+          <div class="agent-log">
+            @for (entry of agentLog(); track $index) {
+              <div class="agent-log-entry">
+                <mat-icon [class]="entry.type">{{ entry.type === 'success' ? 'check_circle' : 'error' }}</mat-icon>
+                <span>{{ entry.message }}</span>
+              </div>
+            }
+          </div>
+        }
+      </section>
+      <app-code-snippet [code]="agentCode" language="typescript" />
+
+      <section class="demo-section">
+        <h2>Backend-powered agent UI</h2>
+        <p>
+          <code>&lt;ht-table-agent&gt;</code> sends a natural-language task to the backend.
+          The mock backend returns canned flag/alert actions.
+        </p>
+        <ht-table-agent
+          placeholder="Flag all out-of-stock products"
+          (taskCompleted)="onBackendAgentCompleted($event)"
+          (taskFailed)="onBackendAgentFailed($event)" />
+        @if (backendAgentError()) {
+          <div class="result-banner error"><mat-icon>warning</mat-icon><span>{{ backendAgentError() }}</span></div>
+        }
+      </section>
+      <app-code-snippet [code]="backendAgentCode" language="html" />
+    </mat-tab>
+  </mat-tab-group>
+</div>

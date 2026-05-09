@@ -1,0 +1,19 @@
+<h2 mat-dialog-title>Select Sheet</h2>
+<mat-dialog-content>
+  <mat-form-field>
+    <mat-label>Sheet Name</mat-label>
+    <mat-select [(value)]="selectedSheet">
+      @for (sheet of data.sheets; track sheet) {
+        <mat-option [value]="sheet">{{ sheet }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-raised-button color="primary"
+          [disabled]="!selectedSheet"
+          (click)="dialogRef.close(selectedSheet)">
+    Select
+  </button>
+</mat-dialog-actions>

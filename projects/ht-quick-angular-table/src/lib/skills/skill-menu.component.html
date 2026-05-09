@@ -1,0 +1,19 @@
+<button mat-button [matMenuTriggerFor]="skillMenu" [disabled]="registry.isExecuting()">
+  <mat-icon>dataset</mat-icon>
+  Data Source
+</button>
+<mat-menu #skillMenu="matMenu">
+  @for (skill of registry.registeredSkills(); track skill.id) {
+    <button mat-menu-item
+            [disabled]="registry.isExecuting()"
+            (click)="skillSelected.emit(skill)">
+      @if (skill.icon) {
+        <mat-icon>{{ skill.icon }}</mat-icon>
+      }
+      <span>{{ skill.name }}</span>
+    </button>
+  }
+  @if (registry.registeredSkills().length === 0) {
+    <button mat-menu-item disabled>No data sources registered</button>
+  }
+</mat-menu>

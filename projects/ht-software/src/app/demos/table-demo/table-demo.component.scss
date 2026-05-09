@@ -1,0 +1,50 @@
+.demo-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  color: #d4af37;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  color: #aaa;
+  margin-bottom: 2rem;
+}
+
+code {
+  background: #2a2a2a;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: #4caf50;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.demo-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  height: 100%;
+}
+
+.card-icon {
+  font-size: 2rem;
+  width: 40px;
+  height: 40px;
+  color: #2e7d32;
+}
+
+mat-card-content {
+  padding-top: 0.5rem;
+}
+
+mat-card-actions {
+  padding: 0.5rem 1rem 1rem;
+}

@@ -1,200 +1,292 @@
-# Feature Specification: ht-quick-ngxfire
+# `ht-quick-ngxfire` Specification
 
-**Feature Branch**: `001-quick-ngxfire`
-**Created**: 2026-02-18
-**Status**: Draft
-**Input**: A set of Angular services for quickly setting up AngularFire with Firebase
-authentication, Firestore, and storage
+## 1. Overview
 
-## User Scenarios & Testing *(mandatory)*
+`ht-quick-ngxfire` is an Angular 21 library that simplifies Firebase integration by providing services, components, and guards that abstract the `@angular/fire` SDK. The library covers three domains: **Authentication**, **Firestore**, and **Storage**.
 
-### User Story 1 - Bootstrap Firebase in an Angular App in Minutes (Priority: P1)
+**Key design decision**: The library uses **custom-built Angular components** for authentication UI — not FirebaseUI (`firebaseui` npm package). FirebaseUI historically lags behind Angular, AngularFire, and Firebase releases, causing version conflicts and breaking changes. Custom components give full control over compatibility, styling, and behavior.
 
-A developer wants to add Firebase to their Angular app without manually configuring
-AngularFire. They install ht-quick-ngxfire, call a single setup function with their
-Firebase credentials, and gain immediate access to Firestore, authentication, and
-storage without writing any boilerplate.
+### Technology Stack
 
-**Why this priority**: Reducing setup time is the entire value proposition of this
-library. If a developer cannot go from zero to a working Firebase connection with
-minimal code, the library has failed its primary goal.
+| Dependency | Version | Bundled? |
+|---|---|---|
+| Angular | ^21.0.0 | peerDependency |
+| `@angular/fire` | ^21.0.0 | bundled (allowedNonPeerDependency) |
+| RxJS | ~7.8.0 | peerDependency |
+| TypeScript | ~5.9.0 (strict) | devDependency |
 
-**Independent Test**: A fresh Angular app calls the library's setup function with valid
-Firebase credentials; a Firestore collection read returns data within 5 seconds. No
-other library feature needs to exist for this to be an MVP.
+**Removed dependency**: `firebaseui` (^6.1.0) — replaced by custom auth components.
 
-**Acceptance Scenarios**:
+## 2. Functional Requirements
 
-1. **Given** a developer has a Firebase project and an Angular app, **When** they add
-   the library's provider to their app configuration with their Firebase credentials,
-   **Then** the app is connected to Firebase with no additional configuration required.
-2. **Given** the library is configured, **When** a developer injects the Firestore
-   service and reads a collection, **Then** they receive live data as an observable
-   stream without writing any Firebase-specific setup code.
-3. **Given** the library is configured with `firestore: false`, **When** the app starts,
-   **Then** the Firestore service is not initialized and injecting it throws a clear error.
+### 2.1. Authentication — Custom Login Component (`HtLoginComponent`)
 
----
+**FR-AUTH-01**: The login component MUST support the following sign-in methods, each togglable via `AuthOptions` configuration:
 
-### User Story 2 - Authenticate Users with Minimal Code (Priority: P2)
+| Method | Provider | Config Flag |
+|---|---|---|
+| Google | `GoogleAuthProvider` | `google: true` |
+| Facebook | `FacebookAuthProvider` | `facebook: true` |
+| Twitter/X | `TwitterAuthProvider` | `twitter: true` |
+| GitHub | `GithubAuthProvider` | `github: true` |
+| Microsoft | `OAuthProvider('microsoft.com')` | `microsoft: true` |
+| Apple | `OAuthProvider('apple.com')` | `apple: true` |
+| Email/Password | `EmailAuthProvider` | `email: true` |
 
-A developer needs user authentication in their app. They enable email/password or
-Google sign-in through the library's configuration and use a provided service to sign
-in, sign out, and observe the current user — all without directly interacting with the
-underlying Firebase Auth SDK.
+**FR-AUTH-02**: SSO providers MUST use `signInWithPopup()` by default. Consumers who need redirect-based auth (e.g., mobile browsers that block popups) MUST set `preferRedirect: true` in `AuthOptions`. There is no automatic popup-block detection or runtime fallback — the mode is configuration-only.
 
-**Why this priority**: Authentication is the second most common Firebase use case after
-Firestore. Abstracting it reduces repeated boilerplate across every app that uses the
-library.
+**FR-AUTH-03**: Email/password sign-in MUST provide three modes:
+- **Sign-in** (default): email + password fields, "Forgot password?" link, "Create account" link
+- **Sign-up**: email + password + confirm password fields, "Already have an account?" link. Confirm-password mismatch MUST show inline validation error before submission. Password validation is delegated to Firebase defaults (minimum 6 characters).
+- **Password reset** (inline): email field + "Send reset link" button + "Back to sign-in" link. Calls `sendPasswordResetEmail()` and displays success/error inline.
 
-**Independent Test**: With auth enabled in configuration, calling the sign-in method
-with valid credentials produces an authenticated user observable that emits the user
-object. Testable without Firestore or storage being enabled.
+Email field MUST be preserved when switching between modes. Email validation uses native HTML5 `type="email"` — server-side validation is handled by Firebase.
 
-**Acceptance Scenarios**:
+**FR-AUTH-16**: The component MUST prevent concurrent sign-in attempts — while an auth operation is in progress (loading state), all sign-in buttons and form submission MUST be disabled. Network errors from Firebase are surfaced through the standard error display (FR-AUTH-05).
 
-1. **Given** auth is enabled with `email: true`, **When** a developer calls the
-   sign-in method with a valid email and password, **Then** the current-user observable
-   emits the authenticated user within 3 seconds.
-2. **Given** auth is enabled with `google: true`, **When** a developer calls the
-   Google sign-in method, **Then** the browser opens the Google OAuth popup and, upon
-   success, the current-user observable emits the authenticated user.
-3. **Given** a user is signed in, **When** the sign-out method is called, **Then** the
-   current-user observable emits `null` and no further authenticated requests can be made.
-4. **Given** auth is enabled with `email: false` and `google: false`, **When** a developer
-   attempts to call the sign-in method, **Then** a clear error is returned explaining
-   that no auth providers are enabled.
+**FR-AUTH-04**: The component MUST emit authentication results via an `output()` signal so the consumer can react (navigate, show errors, etc.).
 
----
+**FR-AUTH-05**: The component MUST display loading state during authentication and error messages on failure. Loading state: all buttons and form inputs MUST be disabled; a loading indicator (CSS-animatable element) MUST be visible. Loading starts when a sign-in/sign-up action is triggered and ends when the auth promise resolves or rejects. On auth failure, password fields MUST be cleared (security: reduce credential exposure in DOM); the email field MUST be preserved. Firebase error messages are displayed as-is (no custom mapping — Firebase provides user-readable messages).
 
-### User Story 3 - Perform Firestore CRUD Without Firebase Boilerplate (Priority: P3)
+**FR-AUTH-06**: The component MUST be stylable by consumers via CSS custom properties. The component MUST expose custom properties for: primary action color, secondary action color, error color, background, text color, border-radius, font-family, and spacing. Property naming convention: `--ht-login-*` (e.g., `--ht-login-primary`, `--ht-login-error`, `--ht-login-bg`). All visual properties MUST have sensible defaults.
 
-A developer needs to read, write, update, and delete Firestore documents. They use the
-library's Firestore service methods — passing only the collection path and data — and
-receive observable streams or resolved promises, with no direct Firestore SDK calls
-in their application code.
+**FR-AUTH-15**: `HtLoginComponent` MUST inject `HtAuthService` internally. Consumers do not pass auth functions via input — the component handles all auth calls through the service. When `authOptions` has no enabled providers (all flags `false` or `undefined`), the component MUST render an empty state (no buttons, no form) rather than throwing.
 
-**Why this priority**: Firestore operations are the most repeated Firebase code in any
-app. Encapsulating them reduces duplication across the codebase (DRY) and lowers the
-learning curve for developers new to Firebase.
+**FR-AUTH-14**: The login component MUST meet WCAG 2.1 AA baseline accessibility:
+- All interactive elements MUST have ARIA labels
+- Full keyboard navigation (tab order, Enter to submit forms)
+- Focus management: move focus to the error message container on auth failure
+- Sufficient color contrast delegated to consumer via CSS custom properties (library provides `--ht-login-*` tokens, not hardcoded colors)
 
-**Independent Test**: Given a configured Firestore connection, calling `getCollectionData`
-with a valid collection path returns an observable that emits an array of documents.
-Independently testable against a live or emulated Firebase project.
+### 2.2. Authentication — Auth Service (`HtAuthService`)
 
-**Acceptance Scenarios**:
+**FR-AUTH-07**: Replace `HtAuthUIService` with `HtAuthService` that provides:
+- `user$: Observable<User | null>` — current auth state stream
+- `currentUser: Signal<User | null>` — signal-based current user (from `toSignal()`)
+- `signInWithProvider(providerId: string, preferRedirect?: boolean): Promise<UserCredential>` — SSO sign-in (per-call override; defaults to `AuthOptions.preferRedirect`)
+- `signInWithEmail(email, password): Promise<UserCredential>` — email sign-in
+- `createAccount(email, password): Promise<UserCredential>` — email sign-up
+- `signOut(): Promise<void>`
+- `sendPasswordReset(email): Promise<void>`
 
-1. **Given** Firestore is enabled, **When** a developer calls `getCollectionData` with
-   a valid collection path, **Then** they receive a live observable that emits the
-   current documents and updates when data changes.
-2. **Given** Firestore is enabled, **When** a developer calls `addDoc` with a
-   collection path and a data object, **Then** a new document appears in Firestore
-   and a resolved promise confirms success.
-3. **Given** Firestore is enabled, **When** a developer calls `updateDoc` with a
-   document path and partial data, **Then** only the specified fields are updated and
-   unchanged fields are preserved.
-4. **Given** Firestore is enabled, **When** a developer calls `deleteDoc` with a
-   document path, **Then** the document is removed from Firestore and the observable
-   stream updates to reflect the deletion.
-5. **Given** Firestore is enabled, **When** a developer calls `writeBatch` with multiple
-   operations, **Then** all operations complete atomically — either all succeed or none
-   are applied.
+**FR-AUTH-08**: `HtAuthService` MUST NOT depend on `firebaseui` in any way.
 
----
+### 2.3. Authentication — Admin Service (`HtAuthAdminService`)
 
-### User Story 4 - Consume the Library Without Installing AngularFire (Priority: P4)
+**FR-AUTH-09**: The existing admin service is retained as-is. It handles:
+- User invitation (`inviteUserByEmail`)
+- Role management (assign, get, remove roles)
+- Permission management (add, remove, check permissions)
+- User profile CRUD
+- Batch role assignment
 
-A developer's Angular app should not need to install AngularFire or Firebase as direct
-dependencies. ht-quick-ngxfire bundles what it needs so the consuming app only installs
-this one library.
+No functional changes. Cleanup changes per NFR-06 (remove `console.log`) and NFR-07 (fix `any` types) apply to all services including this one. Bug fixes (e.g., `getUsersByRole()` missing query filter) are in scope.
 
-**Why this priority**: The library's signature value-add over raw AngularFire is that
-consumers do not need to manage the AngularFire dependency themselves.
+### 2.4. Authentication — User Sync Service (`HtAuthUserSyncService`)
 
-**Independent Test**: A new Angular app with only ht-quick-ngxfire in `package.json`
-(no `@angular/fire` or `firebase`) builds successfully and connects to Firebase.
+**FR-AUTH-10**: The existing user sync service is retained. It auto-syncs authenticated users to Firestore with default role/permissions on first login.
 
-**Acceptance Scenarios**:
+**FR-AUTH-11**: The sync service MUST be updated to use `HtAuthService` instead of `HtAuthUIService` for auth state, if it currently depends on the latter.
 
-1. **Given** an Angular app lists only `ht-quick-ngxfire` in its dependencies (no
-   `@angular/fire` or `firebase`), **When** the app is built, **Then** the build
-   succeeds and Firebase features work at runtime.
-2. **Given** the library is updated to a newer AngularFire version, **When** a consuming
-   app rebuilds without changing its own `package.json`, **Then** the consuming app
-   automatically uses the updated AngularFire version bundled inside the library.
+### 2.5. Authentication — Route Guards
 
----
+**FR-AUTH-12**: `htAuthRedirectGuard` MUST be updated to use `HtAuthService` instead of `HtAuthUIService`. The `isPendingRedirect()` check is no longer needed when using popup-based SSO (remove FirebaseUI-specific logic).
 
-### Edge Cases
+**FR-AUTH-13**: `htRoleGuard`, `createRoleGuard()`, and `htAdminGuard` are retained as-is. No changes unless build errors are found.
 
-- What happens when invalid Firebase credentials are passed to the setup function? The
-  library must surface a descriptive error at initialization time, not silently fail at
-  the first data call.
-- What happens when a developer calls a Firestore method before the library is
-  initialized? A clear error must be thrown indicating the setup function has not been
-  called.
-- What happens when `storage: false` is set but a developer injects the storage service?
-  A clear error must indicate that storage was not enabled in the configuration.
-- What happens when a Firestore document path does not exist and `getDocData` is called?
-  The observable must emit `null` or `undefined`, not throw an unhandled error.
-- What happens when the Firebase emulator is in use? The library must support emulator
-  configuration without requiring code changes beyond configuration.
+### 2.6. Firestore (`HtFirestoreService`)
 
-## Requirements *(mandatory)*
+**FR-FS-01**: The Firestore service is retained as-is. Changes are limited to:
+- Fixing compilation errors against `@angular/fire` ^21.0.0
+- Replacing deprecated APIs with their current equivalents
+- Removing `console.log` debug statements from production code
+- Fixing `any` types where TypeScript strict mode flags them
 
-### Functional Requirements
+**FR-FS-02**: The existing public API (method signatures, return types) MUST NOT change. Consumers should not need to update their code.
 
-- **FR-001**: The library MUST provide a single setup function (provider) that accepts
-  a Firebase configuration object and optional feature flags (firestore, auth, storage,
-  database, functions) to initialize only the requested Firebase services.
-- **FR-002**: The library MUST expose a Firestore service with the following operations:
-  `getCollectionData`, `getDocData`, `addDoc`, `updateDoc`, `setDoc`, `deleteDoc`,
-  `writeBatch`, `getCountFromServer`, and `createCollectionRef`.
-- **FR-003**: The library MUST expose an authentication service supporting email/password
-  sign-in, Google OAuth sign-in, sign-out, and a current-user observable, each
-  controllable via the feature flags in the setup configuration.
-- **FR-004**: Calling any service method for a feature that was not enabled in
-  configuration MUST produce a clear, descriptive error.
-- **FR-005**: The library MUST bundle its Firebase and AngularFire dependencies so that
-  consuming apps do not need to install them separately.
-- **FR-006**: All Firestore collection and document observables MUST emit updated values
-  in real time when the underlying Firestore data changes.
-- **FR-007**: The library MUST support TypeScript generics on all data-reading methods
-  so that consumers can specify the expected document shape and receive typed results.
-- **FR-008**: The library MUST be independently buildable and publishable as an npm
-  package without any changes to its consuming app.
+### 2.7. Storage (`HtStorageService`)
 
-### Key Entities
+**FR-STOR-01**: The storage service is retained as-is. Same rules as Firestore — fix only errors, deprecations, or strict-mode violations.
 
-- **Firebase Configuration**: The credentials and feature flags passed at setup;
-  determines which Firebase services are initialized for the session.
-- **Firestore Service**: Encapsulates all document and collection operations; exposes
-  typed observable streams and promise-based write methods.
-- **Auth Service**: Manages user sign-in, sign-out, and the current authenticated-user
-  state; supports email/password and Google OAuth providers.
+### 2.8. Configuration (`provideHtQuickNgxFire`)
 
-## Success Criteria *(mandatory)*
+**FR-CFG-01**: The provider function MUST be updated to:
+- Remove `console.log` debug statements
+- Add `microsoft` and `apple` to `AuthOptions`
 
-### Measurable Outcomes
+**FR-CFG-02**: `AuthOptions` updated interface:
+```typescript
+interface AuthOptions {
+  email?: boolean;
+  google?: boolean;
+  facebook?: boolean;
+  twitter?: boolean;
+  github?: boolean;
+  microsoft?: boolean;
+  apple?: boolean;
+  preferRedirect?: boolean; // Use redirect instead of popup for SSO
+}
+```
 
-- **SC-001**: A developer can go from installing the library to a working Firestore
-  collection read in 5 minutes or fewer, following only the library's documentation.
-- **SC-002**: A consuming app with only `ht-quick-ngxfire` in its dependencies builds
-  successfully without `@angular/fire` or `firebase` listed anywhere in the app's own
-  `package.json`.
-- **SC-003**: All Firestore observable streams emit updated values within 1 second of
-  a data change in Firebase.
-- **SC-004**: Every invalid configuration scenario (disabled feature accessed, missing
-  credentials) produces a human-readable error message — zero silent failures.
-- **SC-005**: The library builds independently with `ng build ht-quick-ngxfire` in
-  under 60 seconds with zero errors.
+## 3. Non-Functional Requirements
 
-## Assumptions
+**NFR-01**: All components MUST use `ChangeDetectionStrategy.OnPush` and `standalone: true`.
 
-- The library targets Angular 21 and AngularFire 20+; older versions are out of scope.
-- Storage and Functions services are included as future-proofing; their full API surface
-  may be minimal in the initial release but must be placeable behind feature flags.
-- The Firebase emulator suite is a supported configuration but not the primary use case;
-  documentation for emulator setup is outside the scope of this spec.
-- Role and permission data for authenticated users is stored as fields on the Firestore
-  `users/{uid}` document, not in subcollections, per the project's established pattern.
+**NFR-02**: All services MUST use `inject()` — constructor injection is forbidden.
+
+**NFR-03**: All templates MUST use `@if`/`@for`/`@switch` control flow — no structural directives.
+
+**NFR-04**: The library MUST build with `ng build ht-quick-ngxfire` with zero errors.
+
+**NFR-05**: All existing tests MUST continue to pass. New components/services MUST have unit tests.
+
+**NFR-06**: `console.log`/`console.warn` debug statements MUST be removed from all production code. Use the custom `HtQuickNgxFireError` for error conditions.
+
+**NFR-07**: TypeScript strict mode MUST be satisfied — no `any` types except where required by AngularFire's own typings (e.g., `FirestoreDataConverter<T, any>`, `runTransaction` callback). Such exceptions MUST be documented with an inline comment explaining the AngularFire constraint.
+
+## 4. User Stories
+
+### US1: Consumer Adds Login to Their App
+
+**As a** consuming app developer,
+**I want to** drop `<ht-login>` into my template and configure which providers are enabled,
+**so that** I get a working login UI without building auth flows myself.
+
+**Acceptance Criteria:**
+- `<ht-login>` renders SSO buttons for each enabled provider
+- `<ht-login>` renders email/password form when `email: true`
+- Authentication result is emitted via output signal
+- Loading state disables all interactive elements; error state displays message and receives focus
+- Component works with `OnPush` change detection
+
+### US2: Consumer Protects Routes
+
+**As a** consuming app developer,
+**I want to** use `htAuthRedirectGuard` and `htRoleGuard` to protect routes,
+**so that** unauthenticated or unauthorized users are redirected.
+
+**Acceptance Criteria:**
+- Guards work without FirebaseUI dependency
+- `htAuthRedirectGuard` checks `HtAuthService.currentUser` signal
+- `htRoleGuard` checks Firestore-backed roles (unchanged behavior)
+
+### US3: Consumer Uses Firestore Service
+
+**As a** consuming app developer,
+**I want to** use `HtFirestoreService` for CRUD, queries, transactions, and batch writes,
+**so that** I don't interact with raw AngularFire/Firestore APIs.
+
+**Acceptance Criteria:**
+- All existing methods work with `@angular/fire` ^21.0.0
+- No deprecated API warnings at build time
+- No `any` types leak into the public API
+
+### US4: Consumer Uses Storage Service
+
+**As a** consuming app developer,
+**I want to** use `HtStorageService` for file uploads, downloads, and metadata management,
+**so that** I don't interact with raw Firebase Storage APIs.
+
+**Acceptance Criteria:**
+- All existing methods work with `@angular/fire` ^21.0.0
+- Upload progress tracking works correctly
+- No deprecated API warnings
+
+## 5. Data Models
+
+### `FirebaseConfig` (updated)
+```typescript
+interface FirebaseConfig {
+  authOptions: AuthOptions;
+  firebaseOptions: FirebaseOptions;
+  firestore: boolean;
+  database: boolean;
+  functions: boolean;
+  storage: boolean;
+}
+```
+
+### `AuthOptions` (updated)
+```typescript
+interface AuthOptions {
+  email?: boolean;
+  google?: boolean;
+  facebook?: boolean;
+  twitter?: boolean;
+  github?: boolean;
+  microsoft?: boolean;
+  apple?: boolean;
+  preferRedirect?: boolean; // Use redirect instead of popup for SSO
+}
+```
+
+### `UserRole` (unchanged)
+```typescript
+interface UserRole {
+  role: string;
+  permissions?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+```
+
+### `UserProfile` (unchanged)
+```typescript
+interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  role?: UserRole;
+  disabled?: boolean;
+  createdAt?: Date;
+  lastLogin?: Date;
+  metadata?: Record<string, unknown>;
+}
+```
+
+### `AuthResult` (new)
+```typescript
+interface AuthResult {
+  success: boolean;
+  user: User | null;
+  error?: { code: string; message: string };
+  isNewUser?: boolean; // true when created via createAccount(); derived from UserCredential.additionalUserInfo.isNewUser for SSO
+}
+```
+
+## 6. Public API Changes Summary
+
+| Symbol | Change | Migration |
+|---|---|---|
+| `HtAuthUIService` | **Removed** | Use `HtAuthService` |
+| `HtAuthUIComponent` | **Removed** | Use `HtLoginComponent` |
+| `HtAuthService` | **New** | — |
+| `HtLoginComponent` | **New** | — |
+| `AuthResult` | **New** | — |
+| `AuthOptions` | **Updated** | Added `microsoft`, `apple`, `preferRedirect` |
+| `firebaseui` dependency | **Removed** | No longer needed |
+| `htAuthRedirectGuard` | **Updated** | No longer calls `isPendingRedirect()` — behavioral change for redirect-flow users |
+| All other exports | **Unchanged** | — |
+
+**Note**: `HtAuthUIService` and `HtAuthUIComponent` are deleted, not deprecated. Consumers who subclassed these must migrate to `HtAuthService` / `HtLoginComponent` which are `final` (not designed for subclassing — use composition via `HtAuthService` injection).
+
+## Clarifications
+
+### Session 2026-03-01
+
+- Q: When an SSO popup is blocked by the browser, how should the login component handle it? → A: Consumer sets `preferRedirect: true` in config; no runtime fallback.
+- Q: What should the initial mode be for the email/password form? → A: Default to sign-in mode; user clicks "Create account" to toggle.
+- Q: Should the login component meet any baseline accessibility requirements? → A: WCAG 2.1 AA baseline: ARIA labels, keyboard nav, focus management, contrast via CSS custom properties.
+- Q: Should password reset show an inline form or emit an event for the consumer? → A: Inline form (third mode within the component alongside sign-in and sign-up).
+- Q: Should the login component clear password fields after a failed auth attempt? → A: Clear password fields on failure; keep email field populated.
+
+## 7. Out of Scope
+
+- Two-factor authentication (2FA)
+- JWT client-side management
+- Image resizing via Cloud Functions
+- File preview components
+- Angular schematics
+- Offline caching strategies
+- Custom theming system (consumers style via CSS custom properties)

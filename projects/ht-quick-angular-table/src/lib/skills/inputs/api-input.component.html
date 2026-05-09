@@ -1,0 +1,26 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <mat-form-field>
+    <mat-label>API URL</mat-label>
+    <input matInput formControlName="url" placeholder="https://api.example.com/data">
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Method</mat-label>
+    <mat-select formControlName="method">
+      <mat-option value="GET">GET</mat-option>
+      <mat-option value="POST">POST</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Headers (JSON)</mat-label>
+    <textarea matInput formControlName="headers" rows="3"
+              placeholder='{"Authorization": "Bearer ..."}'>
+    </textarea>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>JSONPath (optional)</mat-label>
+    <input matInput formControlName="jsonPath" placeholder="$.data[*]">
+  </mat-form-field>
+  <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+    Pull Data
+  </button>
+</form>

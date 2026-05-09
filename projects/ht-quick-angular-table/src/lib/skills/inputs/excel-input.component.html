@@ -1,0 +1,14 @@
+<div class="drop-zone"
+     (dragover)="onDragOver($event)"
+     (dragleave)="onDragLeave($event)"
+     (drop)="onDrop($event)">
+  <mat-icon>upload_file</mat-icon>
+  <p>Drag & drop a file here, or</p>
+  <button mat-stroked-button (click)="fileInput.click()">Browse Files</button>
+  <input #fileInput type="file" hidden
+         [accept]="acceptFormats()"
+         (change)="onFileSelected($event)">
+  @if (error) {
+    <p class="error">{{ error }}</p>
+  }
+</div>

@@ -1,0 +1,148 @@
+.demo-container {
+  padding: 2rem;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.demo-header {
+  margin-bottom: 1.5rem;
+}
+
+.back-link {
+  margin-bottom: 1rem;
+}
+
+h1 {
+  color: #d4af37;
+  margin: 0.5rem 0 0.25rem;
+}
+
+h2 {
+  color: #e0e0e0;
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+h3 {
+  color: #e0e0e0;
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.demo-description {
+  color: #aaa;
+  margin: 0 0 1rem;
+}
+
+.demo-section {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #1a1a1a;
+}
+
+code {
+  background: #2a2a2a;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: #4caf50;
+}
+
+.feature-list {
+  color: #ccc;
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+
+  li {
+    margin-bottom: 0.25rem;
+  }
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.chart-cell {
+  background: #222;
+  padding: 1rem;
+  border-radius: 6px;
+  min-height: 260px;
+}
+
+.section-divider {
+  margin: 1rem 0;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.builder-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.hint {
+  color: #aaa;
+  font-style: italic;
+}
+
+.result-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+
+  &.success {
+    background: #1b3a1b;
+    border: 1px solid #2e7d32;
+    color: #a5d6a7;
+  }
+
+  &.error {
+    background: #3a1b1b;
+    border: 1px solid #c62828;
+    color: #ef9a9a;
+  }
+}
+
+.builder-result {
+  background: #222;
+  color: #eeffff;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  margin: 1rem 0 0;
+}
+
+.agent-log {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #222;
+  border-radius: 4px;
+}
+
+.agent-log-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+
+  .success {
+    color: #2e7d32;
+  }
+
+  .error {
+    color: #c62828;
+  }
+}

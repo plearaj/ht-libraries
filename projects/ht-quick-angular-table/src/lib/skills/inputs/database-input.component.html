@@ -1,0 +1,32 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <mat-form-field>
+    <mat-label>Database Type</mat-label>
+    <mat-select formControlName="dbType">
+      <mat-option value="postgresql">PostgreSQL</mat-option>
+      <mat-option value="mysql">MySQL</mat-option>
+      <mat-option value="sqlite">SQLite</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Connection String</mat-label>
+    <input matInput formControlName="connectionString"
+           placeholder="postgresql://user:pass@host:5432/db">
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>SQL Query</mat-label>
+    <textarea matInput formControlName="query" rows="4"
+              placeholder="SELECT * FROM users LIMIT 100">
+    </textarea>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Row Limit</mat-label>
+    <input matInput type="number" formControlName="rowLimit">
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Timeout (seconds)</mat-label>
+    <input matInput type="number" formControlName="timeoutSeconds">
+  </mat-form-field>
+  <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+    Run Query
+  </button>
+</form>

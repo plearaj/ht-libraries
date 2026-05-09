@@ -1,0 +1,16 @@
+.drop-zone {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.drop-zone.dragover {
+  border-color: #1976d2;
+  background: rgba(25, 118, 210, 0.04);
+}
+
+.error {
+  color: #f44336;
+  margin-top: 8px;
+}
