@@ -10,19 +10,8 @@ Chart.register(...registerables);
   standalone: true,
   imports: [BaseChartDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (data().length === 0) {
-      <p class="ht-chart-empty">No data available.</p>
-    } @else if (state().error) {
-      <p class="ht-chart-error">{{ state().error }}</p>
-    } @else {
-      <canvas baseChart
-        [type]="config().type"
-        [data]="state().chartData"
-        [options]="chartOptions()">
-      </canvas>
-    }
-  `,
+  templateUrl: './ht-table-chart.component.html',
+  styleUrl: './ht-table-chart.component.scss',
 })
 export class HtTableChartComponent {
   config = input.required<ChartConfig>();

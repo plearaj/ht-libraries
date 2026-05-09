@@ -1,44 +1,21 @@
 import { Component, ChangeDetectionStrategy, computed, input, inject, signal, effect, OnDestroy } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { InsightsConfig, ColumnStatistics } from './insights.types';
-import { HT_AI_PROVIDER } from '../ai/ai-provider.token';
-import { createAiAdapter } from '../ai/ai-adapter.factory';
+import { HtBackendService } from '../backend/ht-backend.service';
 
 @Component({
   selector: 'ht-table-insights',
   standalone: true,
   imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (data().length === 0) {
-      <p>No data available.</p>
-    } @else {
-      @for (stat of statistics(); track stat.column) {
-        <div class="ht-insight-stat">
-          <strong>{{ stat.column }}</strong> — Count: {{ stat.count }}
-          @if (stat.sum !== undefined) {
-            &nbsp;| Sum: {{ stat.sum }} | Avg: {{ stat.avg }} | Min: {{ stat.min }} | Max: {{ stat.max }}
-          }
-        </div>
-      }
-      @if (config().enableAiSummary) {
-        <div class="ht-ai-summary">
-          @if (aiError()) {
-            <p class="ht-ai-error">{{ aiError() }}</p>
-          } @else if (aiSummary()) {
-            <p>{{ aiSummary() }}</p>
-          } @else {
-            <p class="ht-ai-loading">Generating AI summary...</p>
-          }
-        </div>
-      }
-    }
-  `,
+  templateUrl: './ht-table-insights.component.html',
+  styleUrl: './ht-table-insights.component.scss',
 })
 export class HtTableInsightsComponent implements OnDestroy {
   config = input.required<InsightsConfig>();
   data = input.required<unknown[]>();
 
-  private readonly aiProviderConfig = inject(HT_AI_PROVIDER, { optional: true });
+  private readonly backendService = inject(HtBackendService);
 
   private readonly _aiSummary = signal<string>('');
   private readonly _aiError = signal<string>('');
@@ -77,22 +54,40 @@ export class HtTableInsightsComponent implements OnDestroy {
     });
   }
 
+  private _sanitizeDataForPrompt(rows: unknown[], maxRows: number): string {
+    const sample = rows.slice(0, maxRows).map(row => {
+      if (typeof row !== 'object' || row === null) return {};
+      const sanitized: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(row as Record<string, unknown>)) {
+        if (typeof value === 'string') {
+          sanitized[key] = value.length > 200 ? value.slice(0, 200) + '...' : value;
+        } else if (typeof value === 'number' || typeof value === 'boolean' || value === null) {
+          sanitized[key] = value;
+        } else {
+          sanitized[key] = String(value).slice(0, 100);
+        }
+      }
+      return sanitized;
+    });
+    return JSON.stringify(sample);
+  }
+
   private async fetchAiSummary(rows: unknown[]): Promise<void> {
-    if (!this.aiProviderConfig) {
-      this._aiError.set('AI summary unavailable: HT_AI_PROVIDER is not registered.');
-      return;
-    }
     if (rows.length === 0) {
       this._aiSummary.set('');
       this._aiError.set('');
       return;
     }
     try {
-      const adapter = createAiAdapter(this.aiProviderConfig);
       const stats = this.statistics();
-      const prompt = `Summarize this dataset in 2-3 sentences. Rows: ${rows.length}. Statistics: ${JSON.stringify(stats)}. Sample (first 5 rows): ${JSON.stringify(rows.slice(0, 5))}`;
-      const summary = await adapter.generate(prompt);
-      this._aiSummary.set(summary);
+      const sampleData = this._sanitizeDataForPrompt(rows, 5);
+      const message = `Summarize this dataset in 2-3 sentences.\n\nRow count: ${rows.length}\nStatistics: ${JSON.stringify(stats)}\nSample data (first 5 rows):\n---\n${sampleData}\n---`;
+      const response = await firstValueFrom(
+        this.backendService.describeTable(message),
+      );
+      const summary = response.clarification ?? JSON.stringify(response.tableSettings);
+      const truncated = summary.length > 2000 ? summary.slice(0, 2000) + '...' : summary;
+      this._aiSummary.set(truncated);
       this._aiError.set('');
     } catch (err) {
       this._aiError.set(`AI summary failed: ${err instanceof Error ? err.message : 'Unknown error'}`);

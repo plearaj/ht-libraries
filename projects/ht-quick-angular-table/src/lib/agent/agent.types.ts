@@ -55,3 +55,29 @@ export interface AgentFailureEvent<T> {
   row: T | null;
   reason: string;
 }
+
+// --- Backend-delegated agent types ---
+
+/** Result of a single action executed by the backend agent. */
+export interface AgentBackendActionResult {
+  actionName: string;
+  rowIndex: number | null;
+  result: unknown;
+  status: 'success' | 'error';
+  reason?: string;
+}
+
+/** Response from the backend POST /agent/run endpoint. */
+export interface AgentBackendRunResponse {
+  actions: AgentBackendActionResult[];
+  summary: string;
+  durationMs: number;
+}
+
+/** Request payload for the backend POST /agent/run endpoint. */
+export interface AgentRunRequest {
+  task: string;
+  rows: Record<string, unknown>[];
+  columns: { name: string; dataName: string; dataType: string }[];
+  context?: Record<string, unknown>;
+}

@@ -1,3 +1,4 @@
+@if (tableSettingsLoaded()) {
 <!--Simple filter-->
 @if (showSimpleFilter()) {
   <mat-form-field>
@@ -97,6 +98,7 @@
       @if (tableSettings.allowAddData()) {
         <button mat-button (click)="addData()">{{ tableSettings.addButton.buttonText }}</button>
       }
+      <ht-skill-menu></ht-skill-menu>
       <span class="flex-spacer"></span>
       @if (showPaginator()) {
         <mat-paginator
@@ -104,3 +106,4 @@
           [showFirstLastButtons]="paginatorSettings.showFirstLastButtons()" [length]="length()"></mat-paginator>
       }
     </mat-toolbar>
+}

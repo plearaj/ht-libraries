@@ -1,0 +1,46 @@
+<div class="ht-agent-panel">
+  <mat-form-field class="ht-agent-input" appearance="outline">
+    <mat-label>{{ placeholder() }}</mat-label>
+    <input
+      matInput
+      [(ngModel)]="taskInput"
+      (keydown.enter)="submitTask()"
+      [disabled]="agentService.isRunning()"
+    />
+  </mat-form-field>
+  <button
+    mat-icon-button
+    color="primary"
+    (click)="submitTask()"
+    [disabled]="agentService.isRunning() || !taskInput.trim()"
+  >
+    @if (agentService.isRunning()) {
+      <mat-spinner diameter="24"></mat-spinner>
+    } @else {
+      <mat-icon>send</mat-icon>
+    }
+  </button>
+</div>
+@if (error()) {
+  <p class="ht-agent-error">{{ error() }}</p>
+}
+@if (lastResponse()) {
+  <div class="ht-agent-result">
+    <p class="ht-agent-summary">{{ lastResponse()!.summary }}</p>
+    @if (lastResponse()!.actions.length > 0) {
+      <ul class="ht-agent-actions">
+        @for (action of lastResponse()!.actions; track action.actionName + $index) {
+          <li [class.ht-agent-action-error]="action.status === 'error'">
+            <strong>{{ action.actionName }}</strong>
+            @if (action.rowIndex !== null && action.rowIndex !== undefined) {
+              <span class="ht-agent-row-ref"> (row {{ action.rowIndex }})</span>
+            }
+            @if (action.reason) {
+              — {{ action.reason }}
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}

@@ -1,0 +1,37 @@
+.ht-agent-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ht-agent-input {
+  flex: 1;
+}
+
+.ht-agent-error {
+  color: var(--mat-sys-error, #b00020);
+  margin: 4px 0;
+}
+
+.ht-agent-result {
+  margin-top: 8px;
+}
+
+.ht-agent-summary {
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.ht-agent-actions {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.ht-agent-action-error {
+  color: var(--mat-sys-error, #b00020);
+}
+
+.ht-agent-row-ref {
+  color: var(--mat-sys-outline, #79747e);
+  font-size: 0.85em;
+}

@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HT_AI_PROVIDER } from '../ai/ai-provider.token';
-import { createAiAdapter } from '../ai/ai-adapter.factory';
+import { firstValueFrom } from 'rxjs';
+import { HtBackendService } from '../backend/ht-backend.service';
 import { TableSettings } from '../model/table-settings.model';
 import { DynamicMatTableFilter, DynamicMatTableFilterOptions } from '../model/dynamic-mat-table-filter.model';
 import { DynamicMatTablePaginator } from '../model/paginator-settings.model';
@@ -26,34 +26,16 @@ interface BuilderTableJson {
   paginator: { showPagination: boolean; pageSize?: number; pageSizeOptions?: number[] };
 }
 
-const SYSTEM_PROMPT = `You are a table configuration assistant. Generate Angular Material table configurations as JSON.
-
-When the user describes a table, respond with ONLY a valid JSON object matching this schema (no markdown, no explanation):
-{
-  "tableName": "string (camelCase identifier)",
-  "noRecordMessage": "string (message shown when table is empty)",
-  "columns": [
-    {
-      "columnHeader": "string (display label)",
-      "columnDataName": "string (camelCase property key matching data objects)",
-      "columnDataType": "string | number | date | dateString | boolean",
-      "sortable": true | false,
-      "filterable": true | false
-    }
-  ],
-  "filter": { "showFilter": true | false, "filterType": "simple | column" },
-  "paginator": { "showPagination": true | false, "pageSize": number, "pageSizeOptions": [number, ...] }
-}
-
-Rules:
-- columnDataType must be exactly one of: "string", "number", "date", "dateString", "boolean"
-- If you need clarification before generating the JSON, respond with a plain question (no JSON)
-- Never include action, selection, or drag columns in the columns array
-- pageSizeOptions must include pageSize as one of the values`;
+const MAX_USER_MESSAGE_LENGTH = 2000;
+const MAX_COLUMNS = 50;
+const MAX_TABLE_NAME_LENGTH = 128;
+const MAX_HEADER_LENGTH = 256;
+const ALLOWED_COLUMN_TYPES = new Set(['string', 'number', 'date', 'dateString', 'boolean']);
+const ALLOWED_FILTER_TYPES = new Set(['simple', 'column']);
 
 @Injectable({ providedIn: 'root' })
 export class HtTableBuilderService {
-  private readonly aiProviderConfig = inject(HT_AI_PROVIDER, { optional: true });
+  private readonly backendService = inject(HtBackendService);
 
   private readonly _sessionHistory = signal<BuilderMessage[]>([]);
   readonly sessionHistory = this._sessionHistory.asReadonly();
@@ -63,59 +45,102 @@ export class HtTableBuilderService {
   }
 
   async describe(userMessage: string): Promise<BuilderResult> {
-    if (!this.aiProviderConfig) {
-      throw new Error('[ht-quick-angular-table] HtTableBuilderService requires HT_AI_PROVIDER. Call provideHtAi() in your app providers.');
-    }
-    this._sessionHistory.update(h => [...h, { role: 'user', content: userMessage }]);
-    return this._callWithRetry();
+    const sanitized = this._sanitizeUserInput(userMessage);
+    this._sessionHistory.update(h => [...h, { role: 'user', content: sanitized }]);
+    const response = await firstValueFrom(
+      this.backendService.describeTable(sanitized, this._sessionHistory()),
+    );
+    return this._processBackendResponse(response);
   }
 
   async refine(userMessage: string, current: TableSettings): Promise<BuilderResult> {
-    if (!this.aiProviderConfig) {
-      throw new Error('[ht-quick-angular-table] HtTableBuilderService requires HT_AI_PROVIDER. Call provideHtAi() in your app providers.');
-    }
+    const sanitized = this._sanitizeUserInput(userMessage);
     const summary = this._serializeTableSettings(current);
-    const contextMessage = `Current table configuration:\n${JSON.stringify(summary, null, 2)}\n\nUser refinement request: ${userMessage}`;
-    this._sessionHistory.update(h => [...h, { role: 'user', content: contextMessage }]);
-    return this._callWithRetry();
+    this._sessionHistory.update(h => [...h, { role: 'user', content: sanitized }]);
+    const response = await firstValueFrom(
+      this.backendService.refineTable(sanitized, summary as Record<string, unknown>, this._sessionHistory()),
+    );
+    return this._processBackendResponse(response);
   }
 
-  private async _callWithRetry(): Promise<BuilderResult> {
-    const adapter = createAiAdapter(this.aiProviderConfig!);
-    const fullPrompt = this._buildPrompt();
-    let lastResponse = '';
-    for (let attempt = 0; attempt < 3; attempt++) {
-      lastResponse = await adapter.generate(fullPrompt);
-      const tableSettings = this._tryParseResponse(lastResponse);
+  private _processBackendResponse(response: { tableSettings?: Record<string, unknown>; clarification?: string }): BuilderResult {
+    if (response.tableSettings) {
+      const jsonStr = JSON.stringify(response.tableSettings);
+      this._sessionHistory.update(h => [...h, { role: 'assistant', content: jsonStr }]);
+      const tableSettings = this._tryParseResponse(jsonStr);
       if (tableSettings !== null) {
-        this._sessionHistory.update(h => [...h, { role: 'assistant', content: lastResponse }]);
         return { tableSettings };
       }
-      // Only retry if the response looks like attempted JSON (to avoid wasting retries on questions)
-      if (!lastResponse.trim().startsWith('{') && !lastResponse.includes('```')) break;
     }
-    this._sessionHistory.update(h => [...h, { role: 'assistant', content: lastResponse }]);
-    return { clarification: lastResponse };
+    const clarification = response.clarification ?? 'Unable to parse table configuration from backend response.';
+    this._sessionHistory.update(h => [...h, { role: 'assistant', content: clarification }]);
+    return { clarification };
   }
 
-  private _buildPrompt(): string {
-    const history = this._sessionHistory();
-    const historyText = history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
-    return `${SYSTEM_PROMPT}\n\n${historyText}`;
+  private _sanitizeUserInput(message: string): string {
+    if (typeof message !== 'string') {
+      throw new Error('[ht-quick-angular-table] User message must be a string.');
+    }
+    const trimmed = message.trim();
+    if (trimmed.length === 0) {
+      throw new Error('[ht-quick-angular-table] User message must not be empty.');
+    }
+    if (trimmed.length > MAX_USER_MESSAGE_LENGTH) {
+      throw new Error(`[ht-quick-angular-table] User message exceeds maximum length of ${MAX_USER_MESSAGE_LENGTH} characters.`);
+    }
+    return trimmed;
   }
 
   private _tryParseResponse(response: string): TableSettings | null {
     const codeBlock = response.match(/```(?:json)?\s*([\s\S]*?)```/);
     const jsonStr = (codeBlock ? codeBlock[1] : response).trim();
     try {
-      const json = JSON.parse(jsonStr) as BuilderTableJson;
+      const parsed = JSON.parse(jsonStr);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
+      const json = parsed as BuilderTableJson;
       return this._buildTableSettings(json);
     } catch {
       return null;
     }
   }
 
+  private _validateBuilderJson(json: BuilderTableJson): void {
+    if (!Array.isArray(json.columns) || json.columns.length === 0) {
+      throw new Error('AI response must include at least one column.');
+    }
+    if (json.columns.length > MAX_COLUMNS) {
+      throw new Error(`AI response contains ${json.columns.length} columns (max ${MAX_COLUMNS}).`);
+    }
+    if (json.tableName && json.tableName.length > MAX_TABLE_NAME_LENGTH) {
+      throw new Error('AI response tableName exceeds maximum length.');
+    }
+    for (const col of json.columns) {
+      if (!ALLOWED_COLUMN_TYPES.has(col.columnDataType)) {
+        throw new Error(`Invalid columnDataType '${col.columnDataType}'. Allowed: ${[...ALLOWED_COLUMN_TYPES].join(', ')}`);
+      }
+      if (typeof col.columnHeader !== 'string' || col.columnHeader.length > MAX_HEADER_LENGTH) {
+        throw new Error(`Column header must be a string of max ${MAX_HEADER_LENGTH} chars.`);
+      }
+      if (typeof col.columnDataName !== 'string' || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(col.columnDataName)) {
+        throw new Error(`Column data name '${col.columnDataName}' must be alphanumeric/underscore and start with a letter or underscore.`);
+      }
+    }
+    if (json.filter && json.filter.filterType && !ALLOWED_FILTER_TYPES.has(json.filter.filterType)) {
+      throw new Error(`Invalid filterType '${json.filter.filterType}'.`);
+    }
+    if (json.paginator) {
+      if (json.paginator.pageSize !== undefined && (json.paginator.pageSize < 1 || json.paginator.pageSize > 1000)) {
+        throw new Error('pageSize must be between 1 and 1000.');
+      }
+      if (json.paginator.pageSizeOptions && json.paginator.pageSizeOptions.length > 10) {
+        throw new Error('pageSizeOptions must have at most 10 entries.');
+      }
+    }
+  }
+
   private _buildTableSettings(json: BuilderTableJson): TableSettings {
+    this._validateBuilderJson(json);
+
     const columns = json.columns.map(col => ({
       columnHeader: col.columnHeader,
       columnDataName: col.columnDataName,

@@ -1,0 +1,22 @@
+.ht-insight-stat {
+  padding: 4px 0;
+  font-size: 0.9rem;
+}
+
+.ht-ai-summary {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--mat-sys-surface-container-low, #f7f2fa);
+  border-radius: 4px;
+}
+
+.ht-ai-error {
+  color: var(--mat-sys-error, #b00020);
+  margin: 0;
+}
+
+.ht-ai-loading {
+  color: var(--mat-sys-outline, #79747e);
+  font-style: italic;
+  margin: 0;
+}

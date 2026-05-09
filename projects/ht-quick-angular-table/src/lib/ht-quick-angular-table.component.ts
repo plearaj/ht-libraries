@@ -18,12 +18,13 @@ import { HtQuickAngularTableService } from './ht-quick-angular-table.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { Icon, ButtonColor } from './model/dynamic-mat-table-button.model';
+import { HtSkillMenuComponent } from './skills/skill-menu.component';
 
 @Component({
   selector: 'ht-quick-angular-table',
-  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatTableModule, MatButtonModule, MatCheckboxModule, MatToolbar, MatSort, MatPaginator, DatePipe, MatIconModule],
+  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatTableModule, MatButtonModule, MatCheckboxModule, MatToolbar, MatSort, MatPaginator, DatePipe, MatIconModule, HtSkillMenuComponent],
   templateUrl: './ht-quick-angular-table.component.html',
-  styles: ``,
+  styleUrl: './ht-quick-angular-table.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HtQuickAngularTableComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -50,7 +51,7 @@ export class HtQuickAngularTableComponent implements OnInit, AfterViewInit, OnDe
   displayedColumns = signal<DynamicMatTableColumn[]>([]);
   columns = signal<string[]>([]);
   //Sort Variables:
-  sort = viewChild.required<MatSort>(MatSort);
+  sort = viewChild<MatSort>(MatSort);
   //Paginator Setting Variables
   showPaginator = signal<boolean>(false);
   paginator = viewChild<MatPaginator>(MatPaginator);
@@ -72,7 +73,10 @@ export class HtQuickAngularTableComponent implements OnInit, AfterViewInit, OnDe
   });
 
   ngAfterViewInit() {
-    this.datasource().sort = this.sort();
+    const sort = this.sort();
+    if (sort) {
+      this.datasource().sort = sort;
+    }
     const paginator = this.paginator();
     if (paginator) {
       this.datasource().paginator = paginator;
@@ -175,7 +179,10 @@ export class HtQuickAngularTableComponent implements OnInit, AfterViewInit, OnDe
     const isAllSelected = selectionData.every(row => {
       return this.selection.isSelected(row);
     });
-    this.datasource().sortData(this.datasource().data, this.sort());
+    const sort = this.sort();
+    if (sort) {
+      this.datasource().sortData(this.datasource().data, sort);
+    }
     if (isAllSelected) {
       this.datasource().data.forEach((data, index) => {
         if (index >= start && index <= end) {

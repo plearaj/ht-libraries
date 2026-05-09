@@ -1,0 +1,11 @@
+@if (data().length === 0) {
+  <p class="ht-chart-empty">No data available.</p>
+} @else if (state().error) {
+  <p class="ht-chart-error">{{ state().error }}</p>
+} @else {
+  <canvas baseChart
+    [type]="config().type"
+    [data]="state().chartData"
+    [options]="chartOptions()">
+  </canvas>
+}
