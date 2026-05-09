@@ -76,3 +76,11 @@ lerna-debug.log*
 *.tmp
 *.temp
 .cache/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/

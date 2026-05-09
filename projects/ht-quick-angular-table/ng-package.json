@@ -4,12 +4,13 @@
   "lib": {
     "entryFile": "src/public-api.ts"
   },
+  "assets": [
+    "backend/**"
+  ],
   "allowedNonPeerDependencies": [
     "@angular/material",
     "@angular/cdk",
     "chart.js",
-    "ng2-charts",
-    "@google/generative-ai",
-    "@anthropic-ai/sdk"
+    "ng2-charts"
   ]
 }

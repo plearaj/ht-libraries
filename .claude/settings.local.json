@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(echo:*)",
+      "Bash(powershell.exe -Command \"Set-Location ''c:\\\\Users\\\\ajple\\\\Programming Projects\\\\ht-libraries''; git fetch --all --prune 2>&1; git branch -a 2>&1; Get-ChildItem specs -ErrorAction SilentlyContinue\")",
+      "Bash(powershell.exe -File \"c:\\\\Users\\\\ajple\\\\Programming Projects\\\\ht-libraries\\\\.specify\\\\scripts\\\\powershell\\\\create-new-feature.ps1\" -Json -Number 1 -ShortName \"software-showcase\" \"ht-software: kitchen sink showcase application demonstrating all ht-libraries components and services\")",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Force -Path ''c:\\\\Users\\\\ajple\\\\Programming Projects\\\\ht-libraries\\\\specs\\\\001-software-showcase\\\\checklists'' | Out-Null; Write-Output ''done''\")",
+      "Bash(powershell.exe -File:*)",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Force -Path ''c:\\\\Users\\\\ajple\\\\Programming Projects\\\\ht-libraries\\\\specs\\\\001-quick-ngxfire\\\\checklists'' | Out-Null; Write-Output ''done''\")",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Force -Path ''c:\\\\Users\\\\ajple\\\\Programming Projects\\\\ht-libraries\\\\specs\\\\001-quick-angular-table\\\\checklists'' | Out-Null; Write-Output ''done''\")",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Force -Path ''c:\\\\Users\\\\ajple\\\\Programming Projects\\\\ht-libraries\\\\specs\\\\001-camera-upload\\\\checklists'' | Out-Null; Write-Output ''done''\")",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Force -Path ''c:\\\\Users\\\\ajple\\\\Programming Projects\\\\ht-libraries\\\\specs\\\\001-camera-upload\\\\contracts'' | Out-Null; Write-Output ''done''\")",
+      "Bash(powershell.exe -NonInteractive -Command \".specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks\")",
+      "Bash(npx ng build:*)",
+      "Bash(npx ng test:*)",
+      "Bash(powershell.exe -NonInteractive -Command \"Get-ChildItem -Path ''projects/ht-camera-upload'' -Recurse -Name | head -40\")",
+      "Bash(powershell.exe -NonInteractive -Command \"Get-ChildItem -Path ''projects/ht-camera-upload'' -Recurse | Select-Object -ExpandProperty FullName\")",
+      "Bash(powershell.exe -NonInteractive -Command \"Get-Content ''angular.json'' | Select-String -Pattern ''karma|test'' -Context 0,3\")",
+      "Bash(powershell.exe -NonInteractive -Command \"\\(Get-Content ''angular.json'' | ConvertFrom-Json\\).projects.''ht-camera-upload''.architect.test | ConvertTo-Json -Depth 10\")",
+      "Bash(powershell.exe -NonInteractive -Command \"\\(Get-Content ''projects/ht-camera-upload/node_modules/@angular/core/package.json'' | ConvertFrom-Json\\).version\")",
+      "mcp__firebase__developerknowledge_search_documents",
+      "mcp__firebase__firebase_get_environment",
+      "mcp__angular-cli__list_projects",
+      "mcp__angular-cli__get_best_practices"
+    ]
+  },
+  "angular-mcp-server": "http://localhost:4200"
+}

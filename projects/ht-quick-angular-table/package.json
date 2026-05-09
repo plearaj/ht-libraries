@@ -8,9 +8,7 @@
   "dependencies": {
     "tslib": "^2.3.0",
     "chart.js": "^4.5.1",
-    "ng2-charts": "^9.0.0",
-    "@google/generative-ai": "^0.24.1",
-    "@anthropic-ai/sdk": "^0.78.0"
+    "ng2-charts": "^9.0.0"
   },
   "sideEffects": false
 }
