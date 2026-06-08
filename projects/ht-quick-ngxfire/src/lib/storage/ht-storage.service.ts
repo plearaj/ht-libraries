@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, Injector, runInInjectionContext } from '@angular/core';
 import { Storage } from '@angular/fire/storage';
 import {
   ref,
@@ -19,172 +19,120 @@ import {
   StringFormat
 } from '@angular/fire/storage';
 import { Observable, from } from 'rxjs';
+import { SimulationStatusService } from '../simulation/simulation-status.service';
+import { SimStorageBackend } from '../simulation/storage/sim-storage.backend';
+import { HtQuickNgxFireError } from '../ht-quick-ngxfire.error';
 
 @Injectable({
   providedIn: 'root'
 })
 export class HtStorageService {
-  private storage = inject(Storage);
+  private status = inject(SimulationStatusService);
+  private isSim = this.status.get('storage') === 'simulated';
+  private simBackend = this.isSim ? inject(SimStorageBackend) : null;
+  private storage = inject(Storage, { optional: true });
+  private readonly injector = inject(Injector);
 
-  constructor() {
-    // intentionally empty
-  }
-
-  /**
-   * Create a reference to a file or folder in Storage
-   * @param path Path to the file or folder
-   */
   createRef(path: string): StorageReference {
+    if (this.isSim) {
+      // Sim ref: opaque path-keyed marker; consumers shouldn't introspect it.
+      return ({ fullPath: path } as unknown) as StorageReference;
+    }
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     return ref(this.storage, path);
   }
 
-  /**
-   * Upload a file (Blob, File, or Uint8Array)
-   * @param path Path where the file will be stored
-   * @param data File data to upload
-   * @param metadata Optional metadata for the file
-   * @returns Promise with upload result
-   */
-  async uploadFile(
-    path: string,
-    data: Blob | Uint8Array | ArrayBuffer,
-    metadata?: UploadMetadata
-  ): Promise<UploadResult> {
+  async uploadFile(path: string, data: Blob | Uint8Array | ArrayBuffer, metadata?: UploadMetadata): Promise<UploadResult> {
+    if (this.simBackend) {
+      const result = await this.simBackend.uploadFile(path, data, metadata as unknown as Record<string, unknown>);
+      return result as unknown as UploadResult;
+    }
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return await uploadBytes(storageRef, data, metadata);
+    return runInInjectionContext(this.injector, () => uploadBytes(storageRef, data, metadata));
   }
 
-  /**
-   * Upload a file with progress tracking
-   * @param path Path where the file will be stored
-   * @param data File data to upload
-   * @param metadata Optional metadata for the file
-   * @returns UploadTask that can be monitored for progress
-   */
-  uploadFileResumable(
-    path: string,
-    data: Blob | Uint8Array | ArrayBuffer,
-    metadata?: UploadMetadata
-  ): UploadTask {
+  uploadFileResumable(path: string, data: Blob | Uint8Array | ArrayBuffer, metadata?: UploadMetadata): UploadTask {
+    if (this.simBackend) {
+      return this.simBackend.uploadFileResumable(path, data, metadata as unknown as Record<string, unknown>) as unknown as UploadTask;
+    }
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return uploadBytesResumable(storageRef, data, metadata);
+    return runInInjectionContext(this.injector, () => uploadBytesResumable(storageRef, data, metadata));
   }
 
-  /**
-   * Upload a string (base64, data URL, or raw string)
-   * @param path Path where the string will be stored
-   * @param data String data to upload
-   * @param format Format of the string (base64, base64url, data_url, or raw)
-   * @param metadata Optional metadata
-   */
-  async uploadString(
-    path: string,
-    data: string,
-    format?: StringFormat,
-    metadata?: UploadMetadata
-  ): Promise<UploadResult> {
+  async uploadString(path: string, data: string, format?: StringFormat, metadata?: UploadMetadata): Promise<UploadResult> {
+    if (this.simBackend) {
+      const result = await this.simBackend.uploadString(path, data, format as unknown as string, metadata as unknown as Record<string, unknown>);
+      return result as unknown as UploadResult;
+    }
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return await uploadString(storageRef, data, format, metadata);
+    return runInInjectionContext(this.injector, () => uploadString(storageRef, data, format, metadata));
   }
 
-  /**
-   * Get the download URL for a file
-   * @param path Path to the file
-   * @returns Observable of the download URL
-   */
   getDownloadURL(path: string): Observable<string> {
+    if (this.simBackend) return this.simBackend.getDownloadURL(path);
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return from(getDownloadURL(storageRef));
+    return from(runInInjectionContext(this.injector, () => getDownloadURL(storageRef)));
   }
 
-  /**
-   * Get the download URL for a file (Promise version)
-   * @param path Path to the file
-   * @returns Promise of the download URL
-   */
   async getDownloadURLAsync(path: string): Promise<string> {
+    if (this.simBackend) return this.simBackend.getDownloadURLAsync(path);
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return await getDownloadURL(storageRef);
+    return runInInjectionContext(this.injector, () => getDownloadURL(storageRef));
   }
 
-  /**
-   * Delete a file from Storage
-   * @param path Path to the file to delete
-   */
   async deleteFile(path: string): Promise<void> {
+    if (this.simBackend) return this.simBackend.deleteFile(path);
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return await deleteObject(storageRef);
+    return runInInjectionContext(this.injector, () => deleteObject(storageRef));
   }
 
-  /**
-   * List all files and folders at a path
-   * @param path Path to list contents of
-   * @param maxResults Optional maximum number of results
-   * @returns Promise with list result
-   */
-  async listAll(path: string, maxResults?: number): Promise<ListResult> {
+  async listAll(path: string, _maxResults?: number): Promise<ListResult> {
+    if (this.simBackend) {
+      const result = await this.simBackend.listAll(path);
+      return result as unknown as ListResult;
+    }
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return await listAll(storageRef);
+    return runInInjectionContext(this.injector, () => listAll(storageRef));
   }
 
-  /**
-   * Get metadata for a file
-   * @param path Path to the file
-   * @returns Observable of file metadata
-   */
   getMetadata(path: string): Observable<FullMetadata> {
+    if (this.simBackend) return this.simBackend.getMetadata(path) as unknown as Observable<FullMetadata>;
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return from(getMetadata(storageRef));
+    return from(runInInjectionContext(this.injector, () => getMetadata(storageRef)));
   }
 
-  /**
-   * Get metadata for a file (Promise version)
-   * @param path Path to the file
-   * @returns Promise of file metadata
-   */
   async getMetadataAsync(path: string): Promise<FullMetadata> {
+    if (this.simBackend) return this.simBackend.getMetadataAsync(path) as unknown as Promise<FullMetadata>;
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return await getMetadata(storageRef);
+    return runInInjectionContext(this.injector, () => getMetadata(storageRef));
   }
 
-  /**
-   * Update metadata for a file
-   * @param path Path to the file
-   * @param metadata New metadata to set
-   * @returns Promise of updated metadata
-   */
   async updateMetadata(path: string, metadata: UploadMetadata): Promise<FullMetadata> {
+    if (this.simBackend) return this.simBackend.updateMetadata(path, metadata as unknown as Record<string, unknown>) as unknown as Promise<FullMetadata>;
+    if (!this.storage) throw new HtQuickNgxFireError('Storage is not available', 'storage-unavailable');
     const storageRef = this.createRef(path);
-    return await updateMetadata(storageRef, metadata);
+    return runInInjectionContext(this.injector, () => updateMetadata(storageRef, metadata));
   }
 
-  /**
-   * Upload multiple files
-   * @param files Array of objects with path and data
-   * @returns Promise array of upload results
-   */
-  async uploadMultipleFiles(
-    files: Array<{ path: string; data: Blob | Uint8Array | ArrayBuffer; metadata?: UploadMetadata }>
-  ): Promise<UploadResult[]> {
+  async uploadMultipleFiles(files: Array<{ path: string; data: Blob | Uint8Array | ArrayBuffer; metadata?: UploadMetadata }>): Promise<UploadResult[]> {
     const uploads = files.map(file => this.uploadFile(file.path, file.data, file.metadata));
-    return await Promise.all(uploads);
+    return Promise.all(uploads);
   }
 
-  /**
-   * Delete multiple files
-   * @param paths Array of file paths to delete
-   * @returns Promise that resolves when all files are deleted
-   */
   async deleteMultipleFiles(paths: string[]): Promise<void[]> {
     const deletions = paths.map(path => this.deleteFile(path));
-    return await Promise.all(deletions);
+    return Promise.all(deletions);
   }
 
-  /**
-   * Monitor upload progress
-   * @param uploadTask Upload task from uploadFileResumable
-   * @returns Observable of upload progress (0-100)
-   */
   monitorUploadProgress(uploadTask: UploadTask): Observable<number> {
     return new Observable(observer => {
       uploadTask.on(
@@ -199,35 +147,20 @@ export class HtStorageService {
     });
   }
 
-  /**
-   * Upload file with progress and get download URL when complete
-   * @param path Path where the file will be stored
-   * @param data File data to upload
-   * @param metadata Optional metadata
-   * @param onProgress Optional callback for progress updates
-   * @returns Promise of download URL
-   */
-  async uploadWithProgress(
-    path: string,
-    data: Blob | Uint8Array | ArrayBuffer,
-    metadata?: UploadMetadata,
-    onProgress?: (progress: number) => void
-  ): Promise<string> {
+  async uploadWithProgress(path: string, data: Blob | Uint8Array | ArrayBuffer, metadata?: UploadMetadata, onProgress?: (progress: number) => void): Promise<string> {
     const uploadTask = this.uploadFileResumable(path, data, metadata);
-
     return new Promise((resolve, reject) => {
       uploadTask.on(
         'state_changed',
         snapshot => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          if (onProgress) {
-            onProgress(progress);
-          }
+          if (onProgress) onProgress(progress);
         },
         error => reject(error),
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
+          // In sim mode, the snapshot.ref carries fullPath; use it.
+          const url = await this.getDownloadURLAsync(uploadTask.snapshot.ref.fullPath);
+          resolve(url);
         }
       );
     });

@@ -1,5 +1,5 @@
-import { inject, Injectable } from '@angular/core';
-import { Auth, User } from '@angular/fire/auth';
+import { inject, Injectable, Injector, runInInjectionContext } from '@angular/core';
+import { Auth } from '@angular/fire/auth';
 import {
   sendPasswordResetEmail,
   updatePassword,
@@ -15,6 +15,8 @@ import { HtFirestoreService } from '../firestore/ht-quick-firestore.service';
 import { FireStoreBatchOperation } from '../firestore/batch-operations.model';
 import { Observable, firstValueFrom } from 'rxjs';
 import { HtQuickNgxFireError } from '../ht-quick-ngxfire.error';
+import { HtAuthService } from './ht-auth.service';
+import { SimulationStatusService } from '../simulation/simulation-status.service';
 
 export interface UserRole {
   role: string;
@@ -39,11 +41,24 @@ export interface UserProfile {
   providedIn: 'root'
 })
 export class HtAuthAdminService {
-  private auth = inject(Auth);
+  private status = inject(SimulationStatusService);
+  private isSim = this.status.get('auth') === 'simulated';
+  private auth = inject(Auth, { optional: true });
+  private htAuth = inject(HtAuthService);
   private firestoreService = inject(HtFirestoreService);
+  private readonly injector = inject(Injector);
 
   constructor() {
     // intentionally empty
+  }
+
+  /** Resolves to the simulated currentUser (sim mode) or the real Auth.currentUser. */
+  private currentUser(): { uid: string; email?: string | null } | null {
+    if (this.isSim) {
+      const u = this.htAuth.currentUser();
+      return u ? { uid: u.uid, email: u.email } : null;
+    }
+    return this.auth?.currentUser ?? null;
   }
 
   /**
@@ -58,7 +73,9 @@ export class HtAuthAdminService {
       handleCodeInApp?: boolean;
     }
   ): Promise<void> {
-    return await sendPasswordResetEmail(this.auth, email, actionCodeSettings);
+    if (this.isSim) return this.htAuth.sendPasswordReset(email);
+    if (!this.auth) throw new HtQuickNgxFireError('Auth is not available', 'auth-unavailable');
+    return await runInInjectionContext(this.injector, () => sendPasswordResetEmail(this.auth!, email, actionCodeSettings));
   }
 
   /**
@@ -83,9 +100,18 @@ export class HtAuthAdminService {
     // Generate a temporary random password
     const tempPassword = this.generateTempPassword();
 
-    // Create the user account
-    const userCredential = await createUserWithEmailAndPassword(this.auth, email, tempPassword);
-    const userId = userCredential.user.uid;
+    // Create the user account — sim path routes through HtAuthService for parity (FR-017).
+    let userId: string;
+    let createdViaSim = false;
+    if (this.isSim) {
+      const cred = await this.htAuth.createAccount(email, tempPassword);
+      userId = cred.user.uid;
+      createdViaSim = true;
+    } else {
+      if (!this.auth) throw new HtQuickNgxFireError('Auth is not available', 'auth-unavailable');
+      const userCredential = await runInInjectionContext(this.injector, () => createUserWithEmailAndPassword(this.auth!, email, tempPassword));
+      userId = userCredential.user.uid;
+    }
 
     try {
       // Create user profile in Firestore with assigned role
@@ -101,12 +127,23 @@ export class HtAuthAdminService {
       });
 
       // Send password reset email so user can set their own password
-      await sendPasswordResetEmail(this.auth, email, actionCodeSettings);
+      if (this.isSim) {
+        await this.htAuth.sendPasswordReset(email);
+      } else {
+        if (!this.auth) throw new HtQuickNgxFireError('Auth is not available', 'auth-unavailable');
+        await runInInjectionContext(this.injector, () => sendPasswordResetEmail(this.auth!, email, actionCodeSettings));
+      }
 
       return userId;
     } catch (error) {
-      // If Firestore setup fails, delete the created auth user to maintain consistency
-      await deleteUser(userCredential.user);
+      // If Firestore setup fails, delete the created auth user to maintain consistency.
+      // In sim mode there's no real auth user to clean up beyond signing out.
+      if (createdViaSim) {
+        await this.htAuth.signOut();
+      } else if (this.auth?.currentUser) {
+        const currentUser = this.auth.currentUser;
+        await runInInjectionContext(this.injector, () => deleteUser(currentUser));
+      }
       throw error;
     }
   }
@@ -131,9 +168,14 @@ export class HtAuthAdminService {
    * @param newPassword The new password
    */
   async updateUserPassword(newPassword: string): Promise<void> {
-    const user = this.auth.currentUser;
-    if (!user) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
-    return await updatePassword(user, newPassword);
+    const user = this.auth?.currentUser ?? null;
+    if (!user && !this.isSim) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
+    if (this.isSim || !user) {
+      // Sim mode: auth-SDK ops are not modeled by SimAuthBackend; resolve as no-op
+      // so consumer code paths complete (FR-002 — no "not supported" throws).
+      return;
+    }
+    return await runInInjectionContext(this.injector, () => updatePassword(user, newPassword));
   }
 
   /**
@@ -141,9 +183,14 @@ export class HtAuthAdminService {
    * @param newEmail The new email address
    */
   async updateUserEmail(newEmail: string): Promise<void> {
-    const user = this.auth.currentUser;
-    if (!user) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
-    return await updateEmail(user, newEmail);
+    const user = this.auth?.currentUser ?? null;
+    if (!user && !this.isSim) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
+    if (this.isSim || !user) {
+      // Sim mode: auth-SDK ops are not modeled by SimAuthBackend; resolve as no-op
+      // so consumer code paths complete (FR-002 — no "not supported" throws).
+      return;
+    }
+    return await runInInjectionContext(this.injector, () => updateEmail(user, newEmail));
   }
 
   /**
@@ -154,9 +201,14 @@ export class HtAuthAdminService {
     displayName?: string | null;
     photoURL?: string | null;
   }): Promise<void> {
-    const user = this.auth.currentUser;
-    if (!user) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
-    return await updateProfile(user, profile);
+    const user = this.auth?.currentUser ?? null;
+    if (!user && !this.isSim) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
+    if (this.isSim || !user) {
+      // Sim mode: auth-SDK ops are not modeled by SimAuthBackend; resolve as no-op
+      // so consumer code paths complete (FR-002 — no "not supported" throws).
+      return;
+    }
+    return await runInInjectionContext(this.injector, () => updateProfile(user, profile));
   }
 
   /**
@@ -166,11 +218,16 @@ export class HtAuthAdminService {
    * @param password User's current password
    */
   async reauthenticateUser(email: string, password: string): Promise<void> {
-    const user = this.auth.currentUser;
-    if (!user) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
+    const user = this.auth?.currentUser ?? null;
+    if (!user && !this.isSim) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
+    if (this.isSim || !user) {
+      // Sim mode: auth-SDK ops are not modeled by SimAuthBackend; resolve as no-op
+      // so consumer code paths complete (FR-002 — no "not supported" throws).
+      return;
+    }
 
     const credential = EmailAuthProvider.credential(email, password);
-    await reauthenticateWithCredential(user, credential);
+    await runInInjectionContext(this.injector, () => reauthenticateWithCredential(user, credential));
   }
 
   /**
@@ -178,9 +235,14 @@ export class HtAuthAdminService {
    * Requires recent authentication
    */
   async deleteCurrentUser(): Promise<void> {
-    const user = this.auth.currentUser;
-    if (!user) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
-    await deleteUser(user);
+    const user = this.auth?.currentUser ?? null;
+    if (!user && !this.isSim) throw new HtQuickNgxFireError('No user is currently signed in', 'no-user');
+    if (this.isSim || !user) {
+      // Sim mode: auth-SDK ops are not modeled by SimAuthBackend; resolve as no-op
+      // so consumer code paths complete (FR-002 — no "not supported" throws).
+      return;
+    }
+    await runInInjectionContext(this.injector, () => deleteUser(user));
   }
 
   // ==================== ROLE MANAGEMENT ====================
@@ -411,7 +473,7 @@ export class HtAuthAdminService {
    * Get current user's role
    */
   async getCurrentUserRole(): Promise<UserRole | null> {
-    const user = this.auth.currentUser;
+    const user = this.currentUser();
     if (!user) return null;
     return await this.getUserRoleAsync(user.uid);
   }
@@ -420,7 +482,7 @@ export class HtAuthAdminService {
    * Check if current user is admin
    */
   async isCurrentUserAdmin(): Promise<boolean> {
-    const user = this.auth.currentUser;
+    const user = this.currentUser();
     if (!user) return false;
     return await this.hasRole(user.uid, 'admin');
   }
@@ -430,7 +492,7 @@ export class HtAuthAdminService {
    * @param permission Permission to check
    */
   async currentUserHasPermission(permission: string): Promise<boolean> {
-    const user = this.auth.currentUser;
+    const user = this.currentUser();
     if (!user) return false;
     return await this.hasPermission(user.uid, permission);
   }

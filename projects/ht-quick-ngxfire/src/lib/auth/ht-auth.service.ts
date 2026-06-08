@@ -1,4 +1,4 @@
-import { inject, Injectable, Signal } from '@angular/core';
+import { inject, Injectable, Injector, runInInjectionContext, Signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Auth, User, UserCredential, authState } from '@angular/fire/auth';
 import {
@@ -14,65 +14,84 @@ import {
   GithubAuthProvider,
   OAuthProvider
 } from '@angular/fire/auth';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { AUTH_OPTIONS } from '../ht-quick-ngxfire.providers';
+import { SimulationStatusService } from '../simulation/simulation-status.service';
+import { SimAuthBackend } from '../simulation/auth/sim-auth.backend';
 
 @Injectable({
   providedIn: 'root'
 })
 export class HtAuthService {
-  private auth = inject(Auth);
+  private status = inject(SimulationStatusService);
+  private auth = inject(Auth, { optional: true });
+  private simBackend = this.status.get('auth') === 'simulated'
+    ? inject(SimAuthBackend)
+    : null;
   private authOptions = inject(AUTH_OPTIONS, { optional: true });
+  private readonly injector = inject(Injector);
 
-  readonly user$: Observable<User | null> = authState(this.auth);
-  readonly currentUser: Signal<User | null> = toSignal(this.user$, { initialValue: null });
+  readonly user$: Observable<User | null> = this.simBackend
+    ? (this.simBackend.user$ as unknown as Observable<User | null>)
+    : (this.auth ? authState(this.auth) : of(null));
+  readonly currentUser: Signal<User | null> = toSignal(this.user$, {
+    initialValue: null,
+    // HtAuthService is providedIn: 'root', so its lifetime matches the app and
+    // DestroyRef-based cleanup is meaningless. manualCleanup skips the DestroyRef
+    // lookup that trips NG0203 ("toSignal() can only be used within an injection
+    // context") in class-field initializers under some bundling paths (e.g.
+    // Capacitor's WebView) on Angular 20+.
+    manualCleanup: true,
+  });
 
   /**
    * Sign in with an SSO provider (Google, Facebook, Twitter, GitHub, Microsoft, Apple).
-   * @param providerId Provider ID string (e.g., 'google.com', 'github.com')
-   * @param preferRedirect Per-call override; defaults to AuthOptions.preferRedirect
    */
   async signInWithProvider(providerId: string, preferRedirect?: boolean): Promise<UserCredential> {
+    if (this.simBackend) {
+      const cred = await this.simBackend.signInWithProvider(providerId, preferRedirect);
+      return cred as unknown as UserCredential;
+    }
+    if (!this.auth) throw new Error('Auth is not available');
     const provider = this.createProvider(providerId);
     const useRedirect = preferRedirect ?? this.authOptions?.preferRedirect ?? false;
 
     if (useRedirect) {
-      await signInWithRedirect(this.auth, provider);
-      // signInWithRedirect doesn't return a UserCredential directly;
-      // the result comes via getRedirectResult() on page reload.
-      // This is expected behavior — consumers using redirect should handle auth state via user$/currentUser.
+      await runInInjectionContext(this.injector, () => signInWithRedirect(this.auth!, provider));
       return undefined as unknown as UserCredential;
     }
 
-    return signInWithPopup(this.auth, provider);
+    return runInInjectionContext(this.injector, () => signInWithPopup(this.auth!, provider));
   }
 
-  /**
-   * Sign in with email and password.
-   */
   async signInWithEmail(email: string, password: string): Promise<UserCredential> {
-    return signInWithEmailAndPassword(this.auth, email, password);
+    if (this.simBackend) {
+      const cred = await this.simBackend.signInWithEmail(email, password);
+      return cred as unknown as UserCredential;
+    }
+    if (!this.auth) throw new Error('Auth is not available');
+    return runInInjectionContext(this.injector, () => signInWithEmailAndPassword(this.auth!, email, password));
   }
 
-  /**
-   * Create a new account with email and password.
-   */
   async createAccount(email: string, password: string): Promise<UserCredential> {
-    return createUserWithEmailAndPassword(this.auth, email, password);
+    if (this.simBackend) {
+      const cred = await this.simBackend.createAccount(email, password);
+      return cred as unknown as UserCredential;
+    }
+    if (!this.auth) throw new Error('Auth is not available');
+    return runInInjectionContext(this.injector, () => createUserWithEmailAndPassword(this.auth!, email, password));
   }
 
-  /**
-   * Sign out the current user.
-   */
   async signOut(): Promise<void> {
-    return signOut(this.auth);
+    if (this.simBackend) return this.simBackend.signOut();
+    if (!this.auth) return;
+    return runInInjectionContext(this.injector, () => signOut(this.auth!));
   }
 
-  /**
-   * Send password reset email.
-   */
   async sendPasswordReset(email: string): Promise<void> {
-    return sendPasswordResetEmail(this.auth, email);
+    if (this.simBackend) return this.simBackend.sendPasswordReset(email);
+    if (!this.auth) throw new Error('Auth is not available');
+    return runInInjectionContext(this.injector, () => sendPasswordResetEmail(this.auth!, email));
   }
 
   private createProvider(providerId: string) {

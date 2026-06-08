@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, Injector, input, output, runInInjectionContext, signal, viewChild } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AuthOptions } from '../firebase-config.model';
 import { AuthResult } from './auth-result.model';
 import { HtAuthService } from './ht-auth.service';
+import { SimulationStatusService } from '../simulation/simulation-status.service';
 import { UserCredential, getAdditionalUserInfo } from '@angular/fire/auth';
 
 type EmailFormMode = 'sign-in' | 'sign-up' | 'password-reset';
@@ -58,6 +59,9 @@ const SSO_PROVIDERS: SsoProvider[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ht-login" role="form" aria-label="Sign in">
+      @if (status.get('auth') === 'simulated' && showSimulationBadge()) {
+        <span class="ht-login__sim-badge" role="status" aria-label="Simulation mode active">Simulation mode</span>
+      }
       @if (enabledSsoProviders().length > 0) {
         <div class="ht-login__sso">
           @for (provider of enabledSsoProviders(); track provider.id) {
@@ -209,6 +213,23 @@ const SSO_PROVIDERS: SsoProvider[] = [
       --ht-login-border-radius: 4px;
       --ht-login-font-family: inherit;
       --ht-login-spacing: 12px;
+      /* FR-019 simulation badge tokens. Defaults meet WCAG 2.1 AA contrast (≥ 4.5:1). */
+      --ht-login-sim-badge-bg: #fef3c7;
+      --ht-login-sim-badge-fg: #78350f;
+      --ht-login-sim-badge-padding: 4px 8px;
+      --ht-login-sim-badge-radius: 4px;
+      --ht-login-sim-badge-font-size: 12px;
+    }
+
+    .ht-login__sim-badge {
+      display: inline-block;
+      padding: var(--ht-login-sim-badge-padding);
+      background: var(--ht-login-sim-badge-bg);
+      color: var(--ht-login-sim-badge-fg);
+      border-radius: var(--ht-login-sim-badge-radius);
+      font-size: var(--ht-login-sim-badge-font-size);
+      font-weight: 600;
+      margin-bottom: var(--ht-login-spacing);
     }
 
     .ht-login {
@@ -395,8 +416,14 @@ export class HtLoginComponent {
   private sanitizer = inject(DomSanitizer);
   private errorContainerRef = viewChild<ElementRef>('errorContainer');
   private svgCache = new Map<string, SafeHtml>();
+  private readonly injector = inject(Injector);
+
+  /** Read by the template to render the FR-019 simulation badge. */
+  protected readonly status = inject(SimulationStatusService);
 
   authOptions = input.required<AuthOptions>();
+  /** FR-019: default-on, suppressible "Simulation mode" badge inside the component. */
+  showSimulationBadge = input<boolean>(true);
   authResult = output<AuthResult>();
 
   loading = signal(false);
@@ -442,7 +469,9 @@ export class HtLoginComponent {
 
     try {
       const credential = await this.authService.signInWithProvider(providerId);
-      const additionalInfo = credential ? getAdditionalUserInfo(credential) : null;
+      const additionalInfo = credential
+        ? runInInjectionContext(this.injector, () => getAdditionalUserInfo(credential))
+        : null;
       const isNewUser = additionalInfo?.isNewUser ?? false;
       this.authResult.emit({
         success: true,
