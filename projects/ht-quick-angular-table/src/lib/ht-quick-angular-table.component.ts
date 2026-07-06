@@ -64,6 +64,7 @@ export class HtQuickAngularTableComponent implements OnInit, AfterViewInit, OnDe
   selection = new SelectionModel<any>(true, []);
   rowSelected = output<SelectionModel<any>>();
   rowAction = output<{ action: string; row: any }>();
+  rowClicked = output<any>();
   lastChecked!: number;
   //Drag and Drop Variables:
   disableDragAndDrop = true;

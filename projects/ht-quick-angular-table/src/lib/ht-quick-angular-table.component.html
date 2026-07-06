@@ -88,7 +88,7 @@
         <mat-header-row *matHeaderRowDef="filterColumns()"></mat-header-row>
       }
       <mat-header-row *matHeaderRowDef="columns()"></mat-header-row>
-      <mat-row *matRowDef="let row; columns: columns()"></mat-row>
+      <mat-row *matRowDef="let row; columns: columns()" (click)="rowClicked.emit(row)"></mat-row>
       <tr *matNoDataRow>
         <td [attr.colspan]="columns().length">{{ tableSettings.noRecordMessage }}</td>
       </tr>
