@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnDestroy, OnInit, AfterViewInit, output, signal, Signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, input, OnDestroy, OnInit, AfterViewInit, output, signal, Signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { MatSort } from '@angular/material/sort';
@@ -65,6 +65,11 @@ export class HtQuickAngularTableComponent implements OnInit, AfterViewInit, OnDe
   rowSelected = output<SelectionModel<any>>();
   rowAction = output<{ action: string; row: any }>();
   rowClicked = output<any>();
+  // Opt-in: when true, data rows become keyboard-focusable buttons that emit
+  // rowClicked on Enter/Space. Off by default so tables that don't listen to
+  // rowClicked keep their static role="row" grid semantics (no focusable rows
+  // that do nothing).
+  rowInteractive = input<boolean>(false);
   lastChecked!: number;
   //Drag and Drop Variables:
   disableDragAndDrop = true;
@@ -72,6 +77,19 @@ export class HtQuickAngularTableComponent implements OnInit, AfterViewInit, OnDe
   tableFormGroup = new FormGroup({
     tableFormArray: this.tableFormArray
   });
+
+  /** Keyboard activation for interactive rows: Enter/Space emit rowClicked
+   *  (mirroring the (click) handler) so row drill-down is not mouse-only.
+   *  No-op unless rowInteractive is set. */
+  onRowKeydown(event: KeyboardEvent, row: any) {
+    if (!this.rowInteractive()) {
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.rowClicked.emit(row);
+    }
+  }
 
   ngAfterViewInit() {
     const sort = this.sort();
