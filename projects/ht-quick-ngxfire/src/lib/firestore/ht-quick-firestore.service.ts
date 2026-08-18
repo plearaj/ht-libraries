@@ -110,8 +110,16 @@ export class HtFirestoreService {
   getCollectionData<T>(path: string, passId?: boolean): Observable<T[]>;
   getCollectionData<T>(query: Query<DocumentData, DocumentData>, passId?: boolean): Observable<T[]>;
   getCollectionData<T>(pathOrQuery: string | Query<DocumentData, DocumentData>, passId = true): Observable<T[]> {
-    const path = this.resolvePath(pathOrQuery);
-    if (this.simBackend) return this.simBackend.getCollectionData<T>(path, passId);
+    // `resolvePath` is only meaningful for the simulator backend, which is
+    // keyed by path. It used to be called unconditionally here, which made the
+    // `Query` overload declared above impossible to use at runtime: a real
+    // `Query` carries no `.path` (only a `CollectionReference` does), so
+    // `resolvePath` threw `invalid-path` before the branch below could hand
+    // the query to `collectionData`. `getCollectionSnapshots` below already
+    // scopes the call this way.
+    if (this.simBackend) {
+      return this.simBackend.getCollectionData<T>(this.resolvePath(pathOrQuery), passId);
+    }
     if (!this.firestore) throw new HtQuickNgxFireError('Firestore is not available', 'firestore-unavailable');
     let idField: string | undefined = 'id';
     if (!passId) idField = undefined;
