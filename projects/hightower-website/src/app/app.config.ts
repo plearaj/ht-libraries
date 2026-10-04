@@ -9,6 +9,8 @@ import {
 import { routes } from './app.routes';
 import { ContentRepository } from './content/content-repository';
 import { StaticContentRepository } from './content/static-content-repository';
+import { FirebaseSubmissionWriter } from './contact/firebase-submission-writer';
+import { SubmissionWriter } from './contact/submission-writer';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -21,5 +23,6 @@ export const appConfig: ApplicationConfig = {
     ),
     provideClientHydration(withEventReplay()),
     { provide: ContentRepository, useClass: StaticContentRepository },
+    { provide: SubmissionWriter, useClass: FirebaseSubmissionWriter },
   ],
 };
