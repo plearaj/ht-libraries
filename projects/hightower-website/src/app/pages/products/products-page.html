@@ -1,0 +1,16 @@
+<div class="hs-container page-head">
+  <hs-section-heading eyebrow="What we ship" heading="Products" [level]="1" />
+</div>
+@for (group of groups(); track group.heading) {
+  <section class="group">
+    <div class="hs-container">
+      <h2 class="group__heading">{{ group.heading }}</h2>
+      <div class="hs-grid">
+        @for (product of group.products; track product.slug) {
+          <hs-product-card [product]="product" />
+        }
+      </div>
+    </div>
+  </section>
+}
+<hs-cta-band heading="Need something built on these?" />

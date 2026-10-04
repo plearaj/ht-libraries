@@ -1,0 +1,16 @@
+<div class="hs-container page-head">
+  <hs-section-heading eyebrow="Our work" heading="Portfolio" [level]="1" />
+</div>
+@for (group of groups(); track group.kind) {
+  <section class="group">
+    <div class="hs-container">
+      <h2 class="group__heading">{{ group.heading }}</h2>
+      <div class="hs-grid">
+        @for (project of group.projects; track project.slug) {
+          <hs-project-card [project]="project" />
+        }
+      </div>
+    </div>
+  </section>
+}
+<hs-cta-band heading="Want something like this built for you?" />
