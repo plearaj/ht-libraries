@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderMarkdown, withHtml, toModule } from './build-content.mjs';
+import { assertTopicsMatch, expectedTopics, renderMarkdown, rulesTopics, toModule, withHtml } from './build-content.mjs';
 
 test('renderMarkdown converts markdown to HTML', () => {
   assert.equal(renderMarkdown('## Hello\n\nWorld'), '<h2>Hello</h2>\n<p>World</p>\n');
@@ -36,4 +36,30 @@ test('toModule emits typed exports with no raw markdown', () => {
   assert.match(source, /export const PRODUCTS: Product\[\] = /);
   assert.match(source, /export const SERVICES: Service\[\] = /);
   assert.doesNotMatch(source, /"description":/);
+});
+
+const RULES = "&& request.resource.data.topic in ['custom-development','consulting','product','other']";
+const SERVICES = [{ slug: 'consulting', order: 2 }, { slug: 'custom-development', order: 1 }];
+
+test('rulesTopics extracts the topic list from firestore.rules', () => {
+  assert.deepEqual(rulesTopics(RULES), ['custom-development', 'consulting', 'product', 'other']);
+});
+
+test('rulesTopics throws when the list is missing', () => {
+  assert.throws(() => rulesTopics('allow create: if true;'), /could not find the topic list/);
+});
+
+test('expectedTopics is service slugs plus product and other', () => {
+  assert.deepEqual(expectedTopics(SERVICES), ['consulting', 'custom-development', 'product', 'other']);
+});
+
+test('assertTopicsMatch passes when the sets match in any order', () => {
+  assert.doesNotThrow(() => assertTopicsMatch(RULES, SERVICES));
+});
+
+test('assertTopicsMatch fails when a service is missing from the rules', () => {
+  assert.throws(
+    () => assertTopicsMatch(RULES, [...SERVICES, { slug: 'training', order: 3 }]),
+    /firestore\.rules topics .* do not match/,
+  );
 });

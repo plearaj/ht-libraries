@@ -1,6 +1,6 @@
 // Converts authored content (content/*.mts) into src/app/content/content.generated.ts.
 // Node 24 strips TypeScript types natively, so the .mts sources are imported directly.
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Marked } from 'marked';
 
@@ -38,6 +38,29 @@ export function toModule({ site, projects, products, services }) {
   ].join('\n');
 }
 
+export function rulesTopics(rulesText) {
+  const match = rulesText.match(/data\.topic in \[([^\]]*)\]/);
+  if (!match) throw new Error('build-content: could not find the topic list in firestore.rules');
+  return match[1]
+    .split(',')
+    .map((s) => s.trim().replace(/^'|'$/g, ''))
+    .filter(Boolean);
+}
+
+export function expectedTopics(services) {
+  return [...services.map((s) => s.slug), 'product', 'other'];
+}
+
+export function assertTopicsMatch(rulesText, services) {
+  const actual = [...rulesTopics(rulesText)].sort();
+  const expected = [...expectedTopics(services)].sort();
+  if (actual.join(',') !== expected.join(',')) {
+    throw new Error(
+      `build-content: firestore.rules topics [${actual.join(', ')}] do not match services + product/other [${expected.join(', ')}]`,
+    );
+  }
+}
+
 async function main() {
   const [{ site }, { projects }, { products }, { services }] = await Promise.all([
     import('../content/site.mts'),
@@ -45,6 +68,8 @@ async function main() {
     import('../content/products.mts'),
     import('../content/services.mts'),
   ]);
+  const rules = await readFile(new URL('../firestore.rules', import.meta.url), 'utf8');
+  assertTopicsMatch(rules, services);
   const out = fileURLToPath(new URL('../src/app/content/content.generated.ts', import.meta.url));
   await writeFile(out, toModule({ site, projects, products, services }));
   console.log(`build-content: wrote ${out}`);
