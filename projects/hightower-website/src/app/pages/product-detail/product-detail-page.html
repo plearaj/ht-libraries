@@ -1,0 +1,40 @@
+<section class="hs-container head">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/products">Products</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{{ product().name }}</span>
+  </nav>
+  <div class="head__meta">
+    <span class="hs-tag" [class]="tagClass()">{{ kindLabel() }}</span>
+    <span class="hs-meta">Status · {{ statusLabel() }}</span>
+  </div>
+  <h1 class="head__title" [class.head__title--mono]="product().kind === 'library'">{{ product().name }}</h1>
+  <p class="hs-lead">{{ product().summary }}</p>
+  @if (detail().lab; as lab) {
+    <p class="produced-by">Produced in <a [routerLink]="['/portfolio', lab.slug]">{{ lab.name }}</a></p>
+  }
+</section>
+
+<section class="hs-container body">
+  <hs-html-content class="body__main" [html]="product().descriptionHtml" />
+  <aside class="body__aside">
+    @if (product().install; as install) {
+      <div class="aside-block">
+        <h2 class="hs-meta">Install</h2>
+        <hs-code-snippet [code]="install" />
+      </div>
+    }
+    @if (links().length > 0) {
+      <div class="aside-block">
+        <h2 class="hs-meta">Links</h2>
+        <ul class="links">
+          @for (link of links(); track link.url) {
+            <li><a [href]="link.url" target="_blank" rel="noopener noreferrer">{{ link.label }} <span aria-hidden="true">↗</span></a></li>
+          }
+        </ul>
+      </div>
+    }
+  </aside>
+</section>
+
+<hs-cta-band heading="Need something built on this?" />

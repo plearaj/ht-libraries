@@ -1,0 +1,69 @@
+<section class="hs-container head">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/portfolio">Portfolio</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{{ project().name }}</span>
+  </nav>
+  <div class="head__meta">
+    <span class="hs-tag" [class]="'hs-tag--' + project().kind">{{ kindLabel() }}</span>
+    <span class="hs-meta">Status · {{ statusLabel() }}</span>
+    @if (project().client; as client) {
+      <span class="hs-meta">Client · {{ client }}</span>
+    }
+  </div>
+  <h1 class="head__title">{{ project().name }}</h1>
+  <p class="hs-lead">{{ project().tagline }}</p>
+</section>
+
+<div class="hs-container">
+  @if (project().images[0]; as image) {
+    <img class="hero-image" [src]="image.src" [alt]="image.alt" width="1600" height="700" fetchpriority="high">
+  } @else {
+    <div class="hero-image hs-placeholder" aria-hidden="true">{{ project().name }}</div>
+  }
+</div>
+
+<section class="hs-container body">
+  <hs-html-content class="body__main" [html]="project().descriptionHtml" />
+  <aside class="body__aside">
+    @if (project().tech.length > 0) {
+      <div class="aside-block">
+        <h2 class="hs-meta">Tech</h2>
+        <ul class="chips">
+          @for (tech of project().tech; track tech) {
+            <li>{{ tech }}</li>
+          }
+        </ul>
+      </div>
+    }
+    @if (project().links.length > 0) {
+      <div class="aside-block">
+        <h2 class="hs-meta">Links</h2>
+        <ul class="links">
+          @for (link of project().links; track link.url) {
+            <li><a [href]="link.url" target="_blank" rel="noopener noreferrer">{{ link.label }} <span aria-hidden="true">↗</span></a></li>
+          }
+        </ul>
+      </div>
+    }
+  </aside>
+</section>
+
+@if (project().kind === 'lab') {
+  <section class="hs-band hs-band--deep produced">
+    <div class="hs-container">
+      <hs-section-heading eyebrow="Produced in the lab" [heading]="'What came out of ' + project().name" />
+      <div class="hs-grid">
+        @for (product of detail().produced; track product.slug) {
+          <hs-product-card [product]="product" />
+        }
+        <div class="lab-next">
+          <p class="hs-meta">In the lab now</p>
+          <p>The next experiment hasn't shipped yet.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+}
+
+<hs-cta-band heading="Want something like this built for you?" />
