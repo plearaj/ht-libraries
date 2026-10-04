@@ -1,0 +1,25 @@
+:root {
+  --hs-night: #0A1226;
+  --hs-deep: #070D1C;
+  --hs-surface: #121C36;
+  --hs-line: #2A3760;
+  --hs-line-strong: #4A5781;
+  --hs-ivory: #EFEBE1;
+  --hs-muted: #A9B1C7;
+  --hs-soft: #D3D8E4;
+  --hs-gold: #E3B054;
+  --hs-gold-hover: #F3CD85;
+  --hs-gold-pale: #E9D8A6;
+  --hs-violet: #A98BF0;
+  --hs-violet-text: #BFA8F5;
+  --hs-blue: #7FA8D9;
+  --hs-blue-text: #A8C6EA;
+
+  --hs-font-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --hs-font-body: 'Jost', 'Avenir Next', 'Segoe UI', sans-serif;
+  --hs-font-verse: 'Cormorant Garamond', Georgia, serif;
+  --hs-font-mono: 'IBM Plex Mono', Consolas, monospace;
+
+  --hs-max: 1240px;
+  --hs-gutter: clamp(16px, 4vw, 40px);
+}

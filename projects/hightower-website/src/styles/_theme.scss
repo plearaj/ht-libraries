@@ -1,0 +1,28 @@
+@use '@angular/material' as mat;
+
+html {
+  color-scheme: dark;
+  @include mat.theme((
+    color: (primary: mat.$yellow-palette, tertiary: mat.$violet-palette, theme-type: dark),
+    typography: (plain-family: Jost, brand-family: Cinzel),
+    density: 0,
+  ));
+
+  // Brand overrides of Material system tokens (declared after the include so they win).
+  --mat-sys-primary: #E3B054;
+  --mat-sys-on-primary: #0A1226;
+  --mat-sys-surface: #0A1226;
+  --mat-sys-on-surface: #EFEBE1;
+  --mat-sys-on-surface-variant: #A9B1C7;
+  --mat-sys-outline: #4A5781;
+  --mat-sys-outline-variant: #2A3760;
+  --mat-sys-surface-container-lowest: #070D1C;
+  --mat-sys-surface-container-low: #0D1530;
+  --mat-sys-surface-container: #121C36;
+  --mat-sys-surface-container-high: #16203D;
+  --mat-sys-surface-container-highest: #1A2647;
+  --mat-sys-error: #FFB4AB;
+  --mat-sys-corner-extra-small: 0;
+  --mat-sys-corner-small: 0;
+  --mat-sys-corner-medium: 0;
+}

@@ -1,1 +1,4 @@
-html, body { margin: 0; background: #0A1226; color: #EFEBE1; }
+@use 'styles/tokens';
+@use 'styles/fonts';
+@use 'styles/theme';
+@use 'styles/base';
