@@ -1,0 +1,22 @@
+<footer class="footer">
+  @if (site().footerVerse; as verse) {
+    <div class="hs-container footer__verse">
+      <blockquote>
+        <p>{{ verse.text }}</p>
+        <cite class="hs-meta">{{ verse.reference }}</cite>
+      </blockquote>
+    </div>
+  }
+  <div class="hs-container footer__row">
+    <span class="footer__wordmark">{{ site().companyName }}</span>
+    <nav class="footer__links" aria-label="Footer">
+      @for (link of links; track link.path) {
+        <a [routerLink]="link.path">{{ link.label }}</a>
+      }
+      @for (social of site().socials; track social.url) {
+        <a [href]="social.url" target="_blank" rel="noopener noreferrer">{{ social.label }}</a>
+      }
+    </nav>
+    <span class="footer__legal">© {{ year }} · {{ site().location }}</span>
+  </div>
+</footer>

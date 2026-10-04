@@ -1,0 +1,21 @@
+<header class="header">
+  <div class="hs-container header__inner">
+    <a class="wordmark" routerLink="/">
+      <span class="wordmark__text">{{ companyName() }}</span>
+      <svg class="wordmark__star" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z" />
+      </svg>
+    </a>
+    <nav class="nav" aria-label="Main">
+      @for (link of links; track link.path) {
+        <a class="nav__link" [routerLink]="link.path" routerLinkActive="is-active" ariaCurrentWhenActive="page">{{ link.label }}</a>
+      }
+      <a class="hs-btn nav__cta" routerLink="/contact">Start a project</a>
+    </nav>
+    <button type="button" class="menu-button" aria-label="Open menu" (click)="menuOpen.emit()">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" fill="none" />
+      </svg>
+    </button>
+  </div>
+</header>

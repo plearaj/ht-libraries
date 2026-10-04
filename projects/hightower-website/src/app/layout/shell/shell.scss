@@ -1,0 +1,19 @@
+.shell { min-height: 100vh; background: var(--hs-night); }
+
+main:focus { outline: none; }
+
+.drawer { width: min(320px, 85vw); background: var(--hs-surface); border-left: 1px solid var(--hs-line); }
+
+.drawer__nav { display: flex; flex-direction: column; gap: 4px; padding: 24px; }
+
+.drawer__nav a:not(.hs-btn) {
+  padding: 14px 8px;
+  color: var(--hs-ivory);
+  font-size: 18px;
+  text-decoration: none;
+  border-bottom: 1px solid var(--hs-line);
+
+  &.is-active { color: var(--hs-gold); }
+}
+
+.drawer__nav .hs-btn { margin-top: 16px; }
