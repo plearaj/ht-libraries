@@ -38,6 +38,9 @@ describe('SeoService', () => {
     expect(meta.getTag('property="og:url"')?.content).toBe('https://test.example/about');
     expect(meta.getTag('property="og:image"')?.content).toBe('https://test.example/images/og-default.png');
     expect(meta.getTag('name="twitter:card"')?.content).toBe('summary_large_image');
+    expect(meta.getTag('name="twitter:title"')?.content).toBe('About | Test Co');
+    expect(meta.getTag('name="twitter:description"')?.content).toBe('Who we are.');
+    expect(meta.getTag('name="twitter:image"')?.content).toBe('https://test.example/images/og-default.png');
     expect(doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://test.example/about');
   });
 
@@ -53,6 +56,13 @@ describe('SeoService', () => {
     expect(meta.getTag('name="robots"')?.content).toBe('noindex');
     seo.apply({ title: 'About', description: 'D', path: '/about' }, FIXTURE_SITE);
     expect(meta.getTag('name="robots"')).toBeNull();
+  });
+
+  it('emits no canonical link for noindex pages and removes an existing one', () => {
+    seo.apply({ title: 'A', description: 'D', path: '/a' }, FIXTURE_SITE);
+    expect(doc.head.querySelector('link[rel="canonical"]')).not.toBeNull();
+    seo.apply({ title: 'Not found', description: 'D', path: '/not-found', noindex: true }, FIXTURE_SITE);
+    expect(doc.head.querySelector('link[rel="canonical"]')).toBeNull();
   });
 
   it('reuses a single canonical link element', () => {

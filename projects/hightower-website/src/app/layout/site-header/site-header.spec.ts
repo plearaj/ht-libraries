@@ -24,6 +24,16 @@ describe('SiteHeader', () => {
     expect(labels).toEqual(['Portfolio', 'Services', 'Products', 'About', 'Start a project']);
   });
 
+  it('points the menu button at the drawer and reflects its open state in aria-expanded', async () => {
+    const fixture = await setup();
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button.menu-button');
+    expect(button.getAttribute('aria-controls')).toBe('mobile-menu');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    fixture.componentRef.setInput('menuExpanded', true);
+    await fixture.whenStable();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('emits menuOpen when the menu button is clicked', async () => {
     const fixture = await setup();
     let opened = false;

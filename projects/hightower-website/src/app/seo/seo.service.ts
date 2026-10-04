@@ -40,13 +40,21 @@ export class SeoService {
     this.setProperty('og:url', url);
     this.setProperty('og:image', image);
     this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:title', content: fullTitle });
+    this.meta.updateTag({ name: 'twitter:description', content: page.description });
+    this.meta.updateTag({ name: 'twitter:image', content: image });
 
     if (page.noindex) {
       this.meta.updateTag({ name: 'robots', content: 'noindex' });
+      this.removeCanonical();
     } else {
       this.meta.removeTag('name="robots"');
+      this.setCanonical(url);
     }
-    this.setCanonical(url);
+  }
+
+  private removeCanonical(): void {
+    this.document.head.querySelector('link[rel="canonical"]')?.remove();
   }
 
   private setProperty(property: string, content: string): void {
