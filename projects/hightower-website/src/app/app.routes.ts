@@ -54,6 +54,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/about/about-page').then((m) => m.AboutPage),
       },
       {
+        path: 'contact',
+        loadComponent: () => import('./pages/contact/contact-page').then((m) => m.ContactPage),
+        resolve: { services: servicesResolver },
+      },
+      {
         path: 'not-found',
         loadComponent: () => import('./pages/not-found/not-found-page').then((m) => m.NotFoundPage),
       },

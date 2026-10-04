@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { ContentRepository } from './content/content-repository';
 
 /** Every static route is prerendered. Keep in sync with STATIC_ROUTES in scripts/postbuild.mjs. */
-const STATIC_PATHS = ['', 'services', 'portfolio', 'products', 'about', 'not-found'];
+const STATIC_PATHS = ['', 'services', 'portfolio', 'products', 'about', 'contact', 'not-found'];
 
 export const serverRoutes: ServerRoute[] = [
   ...STATIC_PATHS.map((path): ServerRoute => ({ path, renderMode: RenderMode.Prerender })),
