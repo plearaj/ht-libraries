@@ -20,7 +20,8 @@ export class FirebaseSubmissionWriter extends SubmissionWriter {
   }
 
   private init(): Promise<{ db: Firestore; fs: FirestoreModule }> {
-    this.ready ??= (async () => {
+    if (this.ready) return this.ready;
+    const p = (async () => {
       const [{ getApps, initializeApp }, fs] = await Promise.all([
         import('firebase/app'),
         import('firebase/firestore'),
@@ -39,6 +40,11 @@ export class FirebaseSubmissionWriter extends SubmissionWriter {
       });
       return { db: fs.getFirestore(app), fs };
     })();
-    return this.ready;
+    // Don't cache a failure: let the next write() retry (e.g. a flaky lazy-chunk fetch).
+    p.catch(() => {
+      if (this.ready === p) this.ready = undefined;
+    });
+    this.ready = p;
+    return p;
   }
 }
