@@ -1,0 +1,74 @@
+<hs-hero-video [poster]="site().hero.poster" [sources]="site().hero.videoSources">
+  <div class="hs-container hero">
+    <div class="hero__copy">
+      <p class="hs-eyebrow">{{ site().tagline }}</p>
+      <h1 class="hero__title">{{ site().hero.headline }}</h1>
+      <p class="hs-lead">{{ site().hero.lead }}</p>
+      <div class="hero__actions">
+        <a class="hs-btn" routerLink="/contact">Start a project</a>
+        <a class="hs-btn hs-btn--ghost" routerLink="/portfolio">See the work</a>
+      </div>
+    </div>
+  </div>
+</hs-hero-video>
+
+<section class="hs-band">
+  <div class="hs-container">
+    <hs-section-heading eyebrow="What we do" heading="Services" />
+    <div class="hs-grid services">
+      @for (service of home().services; track service.slug) {
+        <article class="service">
+          <h3 class="service__name">{{ service.name }}</h3>
+          <p class="service__summary">{{ service.summary }}</p>
+          <a class="hs-link-arrow" routerLink="/contact" [queryParams]="{ topic: service.slug }">
+            Talk to us about this <span aria-hidden="true">→</span>
+          </a>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+@if (lab(); as lab) {
+  <section class="hs-band hs-band--deep">
+    <div class="hs-container">
+      <hs-section-heading eyebrow="From the lab" [heading]="labHeading()" />
+      <div class="lab">
+        <hs-project-card class="lab__lab" [project]="lab" />
+        @for (product of labProducts(); track product.slug) {
+          <hs-project-card class="lab__product" [project]="product" />
+        }
+      </div>
+    </div>
+  </section>
+}
+
+@if (clients().length > 0) {
+  <section class="hs-band">
+    <div class="hs-container">
+      <hs-section-heading eyebrow="Client work" heading="Apps built for the people who run them." />
+      <div class="hs-grid clients">
+        @for (project of clients(); track project.slug) {
+          <hs-project-card [project]="project" />
+        }
+      </div>
+      <a class="hs-link-arrow more" routerLink="/portfolio">Full portfolio <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+}
+
+@if (home().libraries.length > 0) {
+  <section class="hs-band hs-band--deep">
+    <div class="hs-container">
+      <hs-section-heading eyebrow="Open libraries" heading="Tools we use, shared" />
+      <div class="hs-grid libraries">
+        @for (product of home().libraries; track product.slug) {
+          <hs-product-card [product]="product" />
+        }
+      </div>
+      <a class="hs-link-arrow more" routerLink="/products">All products <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+}
+
+<hs-cta-band heading="Have something that needs building?" />

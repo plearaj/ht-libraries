@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { Shell } from './layout/shell/shell';
-import { siteResolver } from './routing/content-resolvers';
+import { homeResolver, siteResolver } from './routing/content-resolvers';
 
 export const routes: Routes = [
   {
@@ -12,6 +12,7 @@ export const routes: Routes = [
         path: '',
         pathMatch: 'full',
         loadComponent: () => import('./pages/home/home-page').then((m) => m.HomePage),
+        resolve: { home: homeResolver },
       },
     ],
   },
