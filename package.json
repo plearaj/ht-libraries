@@ -9,6 +9,9 @@
     "test": "ng test",
     "content:website": "node projects/hightower-website/scripts/build-content.mjs",
     "test:website": "npm run content:website && ng test hightower-website --watch=false --browsers=ChromeHeadless",
+    "start:website": "npm run content:website && ng serve hightower-website",
+    "build:website": "npm run content:website && ng build hightower-website && node projects/hightower-website/scripts/postbuild.mjs",
+    "deploy:website": "npm run build:website && cd projects/hightower-website && firebase deploy --only hosting,firestore:rules",
     "test:website:scripts": "node --test \"projects/hightower-website/scripts/*.test.mjs\"",
     "test:website:rules": "cd projects/hightower-website && firebase emulators:exec --only firestore --project demo-hightower \"node --test rules-tests/firestore.rules.test.mjs\""
   },
