@@ -24,7 +24,7 @@
 
   <div class="panel">
     @if (state() === 'sent') {
-      <div class="thanks">
+      <div class="thanks" #thanks tabindex="-1">
         <h2>Thank you.</h2>
         <p>Your message is on its way. Expect a reply within {{ site().responseTime }}.</p>
       </div>

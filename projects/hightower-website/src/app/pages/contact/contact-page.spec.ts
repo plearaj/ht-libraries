@@ -136,4 +136,26 @@ describe('ContactPage', () => {
     expect(hp.getAttribute('autocomplete')).toBe('off');
     expect(hp.closest('[aria-hidden="true"]')).not.toBeNull();
   });
+
+  it('moves focus to the thank-you block after a successful submit', async () => {
+    const f = await setup();
+    f.componentInstance.form.setValue(VALID);
+    await f.componentInstance.submit();
+    await f.whenStable();
+    expect(document.activeElement).toBe(el(f).querySelector('.thanks'));
+  });
+
+  it('focuses the first invalid field when submitting an empty form', async () => {
+    const f = await setup();
+    document.body.appendChild(el(f));
+    await f.componentInstance.submit();
+    expect(document.activeElement).toBe(el(f).querySelector('input[formcontrolname="name"]'));
+  });
+
+  it('ignores a second submit while one is in flight', async () => {
+    const f = await setup();
+    f.componentInstance.form.setValue(VALID);
+    await Promise.all([f.componentInstance.submit(), f.componentInstance.submit()]);
+    expect(submit).toHaveBeenCalledTimes(1);
+  });
 });

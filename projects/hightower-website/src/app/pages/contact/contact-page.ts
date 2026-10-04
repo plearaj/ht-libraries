@@ -1,4 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -41,6 +53,9 @@ export class ContactPage {
   readonly topic = input<string | undefined>(); // ?topic= query param
 
   private readonly contact = inject(ContactService);
+  private readonly injector = inject(Injector);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly thanks = viewChild<ElementRef<HTMLElement>>('thanks');
   protected readonly state = signal<FormState>('idle');
   protected readonly topics = computed(() => contactTopics(this.services()));
 
@@ -92,8 +107,18 @@ export class ContactPage {
   async submit(): Promise<void> {
     if (this.state() === 'submitting') return;
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.host.nativeElement
+        .querySelector<HTMLElement>('input.ng-invalid:not(#hp_field_x), textarea.ng-invalid')
+        ?.focus();
+      return;
+    }
     this.state.set('submitting');
-    this.state.set(await this.contact.submit(this.form.getRawValue()));
+    const result = await this.contact.submit(this.form.getRawValue());
+    this.state.set(result);
+    if (result === 'sent') {
+      // The form (and its focused button) is gone; move focus to the confirmation so it is announced.
+      afterNextRender(() => this.thanks()?.nativeElement.focus(), { injector: this.injector });
+    }
   }
 }
