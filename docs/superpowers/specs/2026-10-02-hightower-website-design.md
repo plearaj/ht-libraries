@@ -113,7 +113,7 @@ interface SiteConfig {
   defaultOgImage: string;    // site-relative path, used when a page has no image
   responseTime: string;      // "[RESPONSE TIME]"
   footerVerse?: { text: string; reference: string };  // Proverbs 18:10
-  hero: { poster: Image; videoSources: { src: string; type: string }[] };
+  hero: { headline: string; lead: string; poster: Image; videoSources: { src: string; type: string }[] };
 }
 ```
 
