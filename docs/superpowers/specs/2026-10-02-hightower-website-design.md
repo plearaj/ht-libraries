@@ -113,10 +113,11 @@ interface SiteConfig {
   defaultOgImage: string;    // site-relative path, used when a page has no image
   responseTime: string;      // "[RESPONSE TIME]"
   footerVerse?: { text: string; reference: string };  // Proverbs 18:10
+  hero: { poster: Image; videoSources: { src: string; type: string }[] };
 }
 ```
 
-Source content is authored as TypeScript files with a `description` markdown string. The build script reads them and emits the same objects with `descriptionHtml` in place of `description`. Components only ever see the generated types above.
+Source content is authored as TypeScript files (pure data, erasable types only) in `projects/hightower-website/content/`, with a `description` markdown string. The build script runs them directly on Node 24, which strips types natively, so no extra tooling is needed. It reads them and emits the same objects with `descriptionHtml` in place of `description`. Components only ever see the generated types above.
 
 **Lab → product relationship.** A product records the lab that produced it in `producedBy`. The repository derives the reverse: `producedBy(labSlug)` returns every product whose `producedBy` matches. The Red Sea page lists what it produced; the Logos page shows "Produced in Project Red Sea".
 
@@ -155,7 +156,7 @@ All copy marked `[...]` is a placeholder the owner fills in before launch.
 
 | Route | Component | Notes |
 |---|---|---|
-| `/` | `HomePage` | Hero, services, "From the lab" (Red Sea → Logos), client work, libraries, CTA band |
+| `/` | `HomePage` | Hero video (§6), services, "From the lab" (Red Sea → Logos), client work, libraries, CTA band |
 | `/services` | `ServicesPage` | All services on one page |
 | `/portfolio` | `PortfolioPage` | Grouped by kind: Lab, Products, Client work |
 | `/portfolio/:slug` | `ProjectDetailPage` | Lab and client projects only. Markdown body, tech/links sidebar. A lab page has a "Produced in the lab" section that lists `producedBy(slug)` products plus an "In the lab now" placeholder card. |
@@ -294,9 +295,17 @@ Brand tokens are taken from the owner's brand images and defined as CSS custom p
   - Cormorant Garamond italic for the footer verse.
   - IBM Plex Mono for code.
   - The heading and body fonts are preloaded.
-- **Hero:** full-bleed tower illustration with `object-position: center 22%`, so the text baked into the image is cropped out. Headline and buttons sit over the sky on the right.
+- **Hero video:** a full-bleed 15–20 second video plays at the top of the home page, behind the headline and buttons. A `HeroVideoComponent` handles it:
+  - **Markup:** `<video muted loop playsinline preload="metadata" [poster]>` with a WebM source first and an MP4 (H.264) fallback. There is no audio track. The `autoplay` attribute is deliberately omitted.
+  - **Starting playback:** after hydration (`afterNextRender`), the component calls `play()`, unless the visitor prefers reduced motion (`prefers-reduced-motion: reduce`) or has Save-Data on. In those cases, and when `play()` is rejected, the poster stays and a play button is shown.
+  - **Pause control:** a visible pause/play toggle button sits in the hero corner. This meets WCAG 2.2.2 for motion that lasts longer than 5 seconds. It is keyboard-reachable and labelled "Pause background video" or "Play background video".
+  - **Poster:** the tower illustration (`object-position: center 22%`, so the text baked into the image is cropped out). It shows before playback starts, on prerendered HTML, and as the fallback. It is the page's LCP element.
+  - **Readability:** a dark gradient overlay keeps the headline at WCAG AA contrast over any frame. The video uses `object-fit: cover`.
+  - **Configuration:** `SiteConfig.hero` holds the poster `Image` and the `videoSources` list. With no sources, the hero renders the poster only, so the site builds and ships before the video exists.
+  - **Delivery targets:** 1920×1080 (with a 1280×720 rendition optional), 24–30 fps, no audio. Aim for ≤4 MB for the MP4 and less for the WebM. Files live in `public/media/`, with long cache headers.
 - **Assets:**
-  - `hightower-hero.webp`.
+  - `hero.webm` and `hero.mp4` (the owner supplies these).
+  - `hightower-hero.webp` (the video poster).
   - The Logos image. A text-free, watermark-free version is preferred before launch.
   - `og-default.png` (1200×630) as the default social share image.
 - **Layout:**
@@ -369,5 +378,6 @@ The site doesn't depend on any workspace library, so no library has to be built 
   - Social links.
 - Domain (`siteUrl`).
 - Default social share image.
+- Hero video files (WebM + MP4, 15–20 seconds, no audio).
 - Whether and when the libraries are published to npm (enables install snippets).
 - Confirm whether the Proverbs 18:10 footer verse stays.
