@@ -30,10 +30,22 @@
   - message: 10–5000 characters;
   - topic: a service slug, `product` or `other`.
 - The contact submit timeout is 15 seconds.
-- Hosting: `trailingSlash: false`, `cleanUrls: true`, **no rewrites**.
+- Hosting: `trailingSlash: false`, `cleanUrls: true`, **no rewrites**. Each product-kind project gets a 301 `redirects` entry from `/portfolio/<slug>` to `/products/<productSlug>` in `firebase.json` (only Logos today).
 - Layout works at 360px with no horizontal scroll, has visible focus states, and meets WCAG AA contrast.
 - Copy in `[BRACKETS]` is intentional placeholder site copy that the owner replaces before launch (spec §9). It is not a plan gap.
 - Commit messages end with: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
+
+## Deliberate differences from the spec
+
+Where this plan and the spec disagree, follow the plan. Each difference is intentional:
+
+- **No `Service.icon`** (spec §3.1). No page design renders a service icon, so the field and its Material Symbols font are dropped (YAGNI). Add it back with the font if a design needs it.
+- **Rules tests run as `npm run test:website:rules`**, not `npm run test:rules` (spec §7). Every site script is namespaced `*:website` so it can't collide with the libraries' scripts.
+- **Local dev skips App Check** instead of using a debug token (spec §5.2). Dev writes go to the Firestore emulator under `demo-hightower`, which doesn't enforce App Check, so a debug token adds setup without testing anything. Production still initializes App Check before Firestore.
+- **Detail resolvers return a `RedirectCommand`** (with `skipLocationChange` for not-found) instead of `router.navigate(...)` plus `EMPTY` (spec §4.1). Same visible behaviour, but the redirect happens inside the navigation, with no cancelled navigation and no flash.
+- **Product-kind portfolio URLs also get a Hosting 301** (`/portfolio/logos` → `/products/logos` in `firebase.json`). The spec's resolver redirect only runs after the page loads; a direct hit would otherwise return the 404 page with a 404 status.
+- **The topic/service sync check lives in `build-content.mjs`** (Task 15), not the content-integrity unit test (spec §5.2, §7). It needs to read `firestore.rules` from disk, which Karma tests can't do; running it in the content build also fails earlier.
+- **`.firebaserc` is not committed** (spec §2 lists it among the project's files). The repo's `.gitignore` already ignores it, so the owner creates it at launch with `firebase use --add`.
 
 ---
 
@@ -42,7 +54,7 @@
 ```
 projects/hightower-website/
   firebase.json                     Hosting + Firestore CLI config (Task 15)
-  .firebaserc                       Firebase project alias (Task 15)
+  .firebaserc                       Firebase project alias (gitignored; owner creates it at launch)
   firestore.rules                   contactSubmissions create-only rules (Task 15)
   firestore.indexes.json            empty indexes (Task 15)
   tsconfig.app.json / tsconfig.spec.json
@@ -1949,6 +1961,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 `projects/hightower-website/src/app/shared/shared-components.spec.ts`:
 ```ts
+import { Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { FIXTURE_PRODUCTS, FIXTURE_PROJECTS } from '../content/testing/content-fixtures';
@@ -1959,7 +1972,7 @@ import { ProductCard } from './product-card/product-card';
 import { ProjectCard } from './project-card/project-card';
 import { SectionHeading } from './section-heading/section-heading';
 
-async function render<T>(component: new (...args: never[]) => T, inputs: Record<string, unknown>) {
+async function render<T>(component: Type<T>, inputs: Record<string, unknown>) {
   await TestBed.configureTestingModule({ imports: [component], providers: [provideRouter([])] }).compileComponents();
   const fixture = TestBed.createComponent(component);
   for (const [key, value] of Object.entries(inputs)) fixture.componentRef.setInput(key, value);
@@ -3391,6 +3404,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 `projects/hightower-website/src/app/pages/list-pages.spec.ts`:
 ```ts
+import { Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
@@ -3405,7 +3419,7 @@ import { PortfolioPage } from './portfolio/portfolio-page';
 import { ProductsPage } from './products/products-page';
 import { ServicesPage } from './services/services-page';
 
-async function render<T>(component: new (...args: never[]) => T, inputs: Record<string, unknown>) {
+async function render<T>(component: Type<T>, inputs: Record<string, unknown>) {
   await TestBed.configureTestingModule({ imports: [component], providers: [provideRouter([])] }).compileComponents();
   const fixture = TestBed.createComponent(component);
   fixture.componentRef.setInput('site', FIXTURE_SITE);
@@ -3426,13 +3440,13 @@ describe('list pages', () => {
 
   it('PortfolioPage groups projects by kind in lab, product, client order', async () => {
     const el = await render(PortfolioPage, { projects: FIXTURE_PROJECTS });
-    expect(Array.from(el.querySelectorAll('section h2')).map((h) => h.textContent)).toEqual(['The lab', 'Products', 'Client work']);
+    expect(Array.from(el.querySelectorAll('.group__heading')).map((h) => h.textContent)).toEqual(['The lab', 'Products', 'Client work']);
     expect(el.querySelectorAll('hs-project-card').length).toBe(4);
   });
 
   it('ProductsPage groups apps and libraries', async () => {
     const el = await render(ProductsPage, { products: FIXTURE_PRODUCTS });
-    expect(Array.from(el.querySelectorAll('section h2')).map((h) => h.textContent)).toEqual(['Apps', 'Libraries']);
+    expect(Array.from(el.querySelectorAll('.group__heading')).map((h) => h.textContent)).toEqual(['Apps', 'Libraries']);
     expect(el.querySelectorAll('hs-product-card').length).toBe(2);
   });
 
@@ -3791,6 +3805,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 `projects/hightower-website/src/app/pages/detail-pages.spec.ts`:
 ```ts
+import { Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Meta, Title } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
@@ -3799,7 +3814,7 @@ import { NotFoundPage } from './not-found/not-found-page';
 import { ProductDetailPage } from './product-detail/product-detail-page';
 import { ProjectDetailPage } from './project-detail/project-detail-page';
 
-async function render<T>(component: new (...args: never[]) => T, inputs: Record<string, unknown>) {
+async function render<T>(component: Type<T>, inputs: Record<string, unknown>) {
   await TestBed.configureTestingModule({ imports: [component], providers: [provideRouter([])] }).compileComponents();
   const fixture = TestBed.createComponent(component);
   fixture.componentRef.setInput('site', FIXTURE_SITE);
@@ -4242,7 +4257,7 @@ import { firstValueFrom } from 'rxjs';
 import { ContentRepository } from './content/content-repository';
 
 /** Every static route is prerendered. Keep in sync with STATIC_ROUTES in scripts/postbuild.mjs. */
-const STATIC_PATHS = ['', 'services', 'portfolio', 'products', 'about', 'contact', 'not-found'];
+const STATIC_PATHS = ['', 'services', 'portfolio', 'products', 'about', 'not-found'];
 
 export const serverRoutes: ServerRoute[] = [
   ...STATIC_PATHS.map((path): ServerRoute => ({ path, renderMode: RenderMode.Prerender })),
@@ -4266,7 +4281,7 @@ export const serverRoutes: ServerRoute[] = [
   { path: '**', renderMode: RenderMode.Client },
 ];
 ```
-The `contact` server route is listed now. Its app route arrives in Task 14, so until then the build warns that `contact` matches no route. That warning is expected and harmless.
+`contact` is deliberately absent. @angular/ssr fails the build when a server route has no matching client route, so Task 14 adds `contact` here in the same step that adds its client route.
 
 - [ ] **Step 7: Run tests and build**
 
@@ -4663,7 +4678,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `projects/hightower-website/src/app/contact/contact-validators.ts`, `projects/hightower-website/src/app/pages/contact/contact-page.ts`, `.../contact/contact-page.html`, `.../contact/contact-page.scss`
-- Modify: `projects/hightower-website/src/app/app.routes.ts`
+- Modify: `projects/hightower-website/src/app/app.routes.ts`, `projects/hightower-website/src/app/app.routes.server.ts`
 - Test: `projects/hightower-website/src/app/pages/contact/contact-page.spec.ts`
 
 **Interfaces:**
@@ -4719,6 +4734,22 @@ describe('ContactPage', () => {
   it('falls back to the first service for a missing or unknown topic', async () => {
     const f = await setup('pizza');
     expect(f.componentInstance.form.controls.topic.value).toBe('custom-development');
+  });
+
+  it('follows a ?topic= change while the component is reused', async () => {
+    const f = await setup('consulting');
+    f.componentRef.setInput('topic', 'other');
+    await f.whenStable();
+    expect(f.componentInstance.form.controls.topic.value).toBe('other');
+  });
+
+  it('keeps the visitor\'s own topic choice when ?topic= changes', async () => {
+    const f = await setup('consulting');
+    f.componentInstance.form.controls.topic.setValue('product');
+    f.componentInstance.form.controls.topic.markAsDirty();
+    f.componentRef.setInput('topic', 'other');
+    await f.whenStable();
+    expect(f.componentInstance.form.controls.topic.value).toBe('product');
   });
 
   it('lists the service topics plus product and other', async () => {
@@ -4835,7 +4866,7 @@ export function trimmedMinLength(min: number): ValidatorFn {
 
 `pages/contact/contact-page.ts`:
 ```ts
-import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -4872,7 +4903,7 @@ const MESSAGES: Record<Field, Record<string, string>> = {
   styleUrl: './contact-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ContactPage implements OnInit {
+export class ContactPage {
   readonly site = input.required<SiteConfig>();
   readonly services = input.required<Service[]>();
   readonly topic = input<string | undefined>(); // ?topic= query param
@@ -4908,12 +4939,15 @@ export class ContactPage implements OnInit {
         this.site(),
       ),
     );
-  }
-
-  ngOnInit(): void {
-    const values = this.topics().map((t) => t.value);
-    const requested = this.topic();
-    this.form.controls.topic.setValue(requested && values.includes(requested) ? requested : values[0]);
+    // Re-runs when ?topic= changes while the router reuses this component
+    // (e.g. a CTA link clicked from /contact). Never overrides a visitor's choice.
+    effect(() => {
+      const values = this.topics().map((t) => t.value);
+      const requested = this.topic();
+      const control = this.form.controls.topic;
+      if (control.dirty) return;
+      control.setValue(requested && values.includes(requested) ? requested : values[0]);
+    });
   }
 
   protected errorFor(field: Field): string {
@@ -5094,18 +5128,23 @@ Add the route in `projects/hightower-website/src/app/app.routes.ts`. Put it afte
       },
 ```
 
+In `projects/hightower-website/src/app/app.routes.server.ts`, add `'contact'` to `STATIC_PATHS` before `'not-found'`:
+```ts
+const STATIC_PATHS = ['', 'services', 'portfolio', 'products', 'about', 'contact', 'not-found'];
+```
+
 - [ ] **Step 5: Run tests and build**
 
 Run: `npm run test:website`
 Expected: all specs PASS.
 
 Run: `npx ng build hightower-website`
-Expected: success with no `contact` route warning. `dist/browser/contact/index.html` contains `Tell us what you're building.`
+Expected: success. `dist/browser/contact/index.html` contains `Tell us what you're building.`
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add projects/hightower-website/src/app/contact/contact-validators.ts projects/hightower-website/src/app/pages/contact projects/hightower-website/src/app/app.routes.ts
+git add projects/hightower-website/src/app/contact/contact-validators.ts projects/hightower-website/src/app/pages/contact projects/hightower-website/src/app/app.routes.ts projects/hightower-website/src/app/app.routes.server.ts
 git commit -m "feat(website): contact page with validation, honeypot and send states
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -5116,7 +5155,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ### Task 15: Firebase config, Firestore rules, rules tests and the topic-sync check
 
 **Files:**
-- Create: `projects/hightower-website/firebase.json`, `projects/hightower-website/.firebaserc`, `projects/hightower-website/firestore.rules`, `projects/hightower-website/firestore.indexes.json`, `projects/hightower-website/rules-tests/firestore.rules.test.mjs`
+- Create: `projects/hightower-website/firebase.json`, `projects/hightower-website/firestore.rules`, `projects/hightower-website/firestore.indexes.json`, `projects/hightower-website/rules-tests/firestore.rules.test.mjs`
 - Modify: `projects/hightower-website/scripts/build-content.mjs`, `projects/hightower-website/scripts/build-content.test.mjs`, `package.json`
 
 **Interfaces:**
@@ -5140,6 +5179,9 @@ Expected: both land in `devDependencies`. Version 4.x has `firebase@^11` as a pe
     "cleanUrls": true,
     "trailingSlash": false,
     "ignore": ["firebase.json", "**/.*"],
+    "redirects": [
+      { "source": "/portfolio/logos", "destination": "/products/logos", "type": 301 }
+    ],
     "headers": [
       { "source": "**", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
       { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
@@ -5160,14 +5202,7 @@ Expected: both land in `devDependencies`. Version 4.x has `firebase@^11` as a pe
 }
 ```
 
-`projects/hightower-website/.firebaserc` (the owner replaces the id in spec §8):
-```json
-{
-  "projects": {
-    "default": "REPLACE_WITH_PROJECT_ID"
-  }
-}
-```
+Do **not** create `.firebaserc`. The root `.gitignore` ignores it (`.firebaserc`, line 58), and every emulator command in this plan passes `--project demo-hightower` explicitly. The owner links the real project at launch with `firebase use --add` (see the Launch checklist).
 
 `projects/hightower-website/firestore.indexes.json`:
 ```json
@@ -5368,7 +5403,7 @@ Expected: succeeds. The rules topics match the two seeded services plus `product
 - [ ] **Step 8: Commit**
 
 ```bash
-git add package.json projects/hightower-website/firebase.json projects/hightower-website/.firebaserc projects/hightower-website/firestore.rules projects/hightower-website/firestore.indexes.json projects/hightower-website/rules-tests/firestore.rules.test.mjs projects/hightower-website/scripts/build-content.mjs projects/hightower-website/scripts/build-content.test.mjs
+git add package.json projects/hightower-website/firebase.json projects/hightower-website/firestore.rules projects/hightower-website/firestore.indexes.json projects/hightower-website/rules-tests/firestore.rules.test.mjs projects/hightower-website/scripts/build-content.mjs projects/hightower-website/scripts/build-content.test.mjs
 git commit -m "feat(website): Firebase hosting config, create-only Firestore rules and rules tests
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -5594,7 +5629,7 @@ curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" http://127.0.0.1:5000/a
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5000/portfolio/red-sea
 curl -s -w "\n%{http_code}\n" http://127.0.0.1:5000/portfolio/bogus | tail -1
 curl -s http://127.0.0.1:5000/portfolio/bogus | grep -c "Page not found"
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5000/portfolio/logos
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" http://127.0.0.1:5000/portfolio/logos
 curl -sI http://127.0.0.1:5000/about | grep -i cache-control
 curl -sI http://127.0.0.1:5000/$(ls projects/hightower-website/dist/browser | grep -m1 '^main-.*\.js$') | grep -i cache-control
 ```
@@ -5604,7 +5639,7 @@ Expected, in order:
 3. `200`
 4. `404`
 5. `1`
-6. `404`
+6. `301 http://127.0.0.1:5000/products/logos`
 7. `cache-control: no-cache`
 8. `cache-control: public, max-age=31536000, immutable`
 
@@ -5633,11 +5668,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ## Launch checklist (owner, spec §8–§9; not code tasks)
 
 - Create the Firebase project.
-  - Put its id in `projects/hightower-website/.firebaserc`.
+  - In `projects/hightower-website`, run `npx firebase use --add`, pick the project and alias it `default`. This writes the gitignored `.firebaserc` that `deploy:website` relies on.
   - Put the web app config and reCAPTCHA v3 site key in `environment.prod.ts`.
 - Enable Firestore (production mode).
 - Register App Check (reCAPTCHA v3). After the first verified submission, **turn on App Check enforcement for Firestore**.
 - Set a billing budget alert.
+- If a new product-kind project is added, add its `/portfolio/<slug>` → `/products/<productSlug>` 301 to `redirects` in `projects/hightower-website/firebase.json`.
 - Connect the custom domain, and set `siteUrl` in `content/site.mts`.
 - Supply the copy and assets:
   - `[...]` placeholders;
