@@ -193,6 +193,92 @@
           }
         }
       }
+    },
+    "hightower-website": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss",
+          "changeDetection": "OnPush"
+        }
+      },
+      "root": "projects/hightower-website",
+      "sourceRoot": "projects/hightower-website/src",
+      "prefix": "hs",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "projects/hightower-website/dist",
+            "index": "projects/hightower-website/src/index.html",
+            "browser": "projects/hightower-website/src/main.ts",
+            "server": "projects/hightower-website/src/main.server.ts",
+            "outputMode": "static",
+            "tsConfig": "projects/hightower-website/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/hightower-website/public"
+              }
+            ],
+            "styles": [
+              "projects/hightower-website/src/styles.scss"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kB",
+                  "maximumError": "12kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "hightower-website:build:production"
+            },
+            "development": {
+              "buildTarget": "hightower-website:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "projects/hightower-website/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/hightower-website/public"
+              }
+            ],
+            "styles": [
+              "projects/hightower-website/src/styles.scss"
+            ]
+          }
+        }
+      }
     }
   },
   "cli": {
