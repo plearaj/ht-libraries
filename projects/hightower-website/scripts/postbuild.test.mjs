@@ -3,15 +3,16 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
-import { expectedRoutes, forbiddenRoutes, postbuild, robotsTxt, routeFile, sitemapXml } from './postbuild.mjs';
+import { expectedRoutes, forbiddenRoutes, missingRedirects, postbuild, robotsTxt, routeFile, sitemapXml } from './postbuild.mjs';
 
 const PROJECTS = [
   { slug: 'red-sea', kind: 'lab' },
-  { slug: 'logos', kind: 'product' },
+  { slug: 'logos', kind: 'product', productSlug: 'logos' },
   { slug: 'kree', kind: 'client' },
 ];
 const PRODUCTS = [{ slug: 'logos' }, { slug: 'lib' }];
 const SITE = { siteUrl: 'https://a.dev' };
+const REDIRECTS = [{ source: '/portfolio/logos', destination: '/products/logos', type: 301 }];
 
 test('expectedRoutes lists static routes, non-product projects and all products', () => {
   assert.deepEqual(expectedRoutes(PROJECTS, PRODUCTS), [
@@ -52,7 +53,7 @@ async function fakeDist(routes) {
 
 test('postbuild writes 404.html, sitemap.xml and robots.txt', async () => {
   const dir = await fakeDist(expectedRoutes(PROJECTS, PRODUCTS));
-  await postbuild({ browserDir: dir, site: SITE, projects: PROJECTS, products: PRODUCTS });
+  await postbuild({ browserDir: dir, site: SITE, projects: PROJECTS, products: PRODUCTS, redirects: REDIRECTS });
   assert.equal(await readFile(join(dir, '404.html'), 'utf8'), '<html>/not-found</html>');
   assert.match(await readFile(join(dir, 'sitemap.xml'), 'utf8'), /products\/lib/);
   await access(join(dir, 'robots.txt'));
@@ -61,7 +62,7 @@ test('postbuild writes 404.html, sitemap.xml and robots.txt', async () => {
 test('postbuild fails when a page is missing', async () => {
   const dir = await fakeDist(['/']);
   await assert.rejects(
-    postbuild({ browserDir: dir, site: SITE, projects: PROJECTS, products: PRODUCTS }),
+    postbuild({ browserDir: dir, site: SITE, projects: PROJECTS, products: PRODUCTS, redirects: REDIRECTS }),
     /missing prerendered pages: \/services/,
   );
 });
@@ -69,7 +70,25 @@ test('postbuild fails when a page is missing', async () => {
 test('postbuild fails when a product-kind project got a portfolio page', async () => {
   const dir = await fakeDist([...expectedRoutes(PROJECTS, PRODUCTS), '/portfolio/logos']);
   await assert.rejects(
-    postbuild({ browserDir: dir, site: SITE, projects: PROJECTS, products: PRODUCTS }),
+    postbuild({ browserDir: dir, site: SITE, projects: PROJECTS, products: PRODUCTS, redirects: REDIRECTS }),
     /must not have portfolio pages: \/portfolio\/logos/,
   );
+});
+
+test('missingRedirects is empty when every product project has a 301 to its product page', () => {
+  const projects = [{ slug: 'logos', kind: 'product', productSlug: 'logos' }];
+  const redirects = [{ source: '/portfolio/logos', destination: '/products/logos', type: 301 }];
+  assert.deepEqual(missingRedirects(projects, redirects), []);
+});
+
+test('missingRedirects reports routes with no matching redirect', () => {
+  const projects = [
+    { slug: 'logos', kind: 'product', productSlug: 'logos' },
+    { slug: 'orb', kind: 'product', productSlug: 'orb-app' },
+  ];
+  const redirects = [
+    { source: '/portfolio/logos', destination: '/products/logos', type: 301 },
+    { source: '/portfolio/orb', destination: '/products/orb', type: 302 },
+  ];
+  assert.deepEqual(missingRedirects(projects, redirects), ['/portfolio/orb']);
 });

@@ -3,7 +3,7 @@
     "public": "dist/browser",
     "cleanUrls": true,
     "trailingSlash": false,
-    "ignore": ["firebase.json", "**/.*"],
+    "ignore": ["firebase.json", "**/.*", "index.csr.html"],
     "redirects": [
       { "source": "/portfolio/logos", "destination": "/products/logos", "type": 301 }
     ],

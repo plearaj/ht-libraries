@@ -216,6 +216,7 @@
             "outputMode": "static",
             "tsConfig": "projects/hightower-website/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": ["@grpc/grpc-js", "@grpc/proto-loader"],
             "assets": [
               {
                 "glob": "**/*",

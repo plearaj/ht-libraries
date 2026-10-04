@@ -27,7 +27,7 @@ Declarative Angular Material data table driven by a single \`TableSettings\` ins
 
 An optional Python backend unlocks data-ingestion skills (Excel, API, SQL), an AI table builder, chart and insights widgets, and an agent that runs actions over your rows.
 `,
-    repoUrl: `${REPO}/tree/main/projects/ht-quick-angular-table`,
+    repoUrl: `${REPO}/tree/HEAD/projects/ht-quick-angular-table`,
     status: 'in-progress',
   },
   {
@@ -39,7 +39,7 @@ An optional Python backend unlocks data-ingestion skills (Excel, API, SQL), an A
     description: `
 Opinionated Angular 21 wrapper around \`@angular/fire\`: signal-based auth, a thin Firestore wrapper, a Storage wrapper, a drop-in login component, route guards for auth and roles, and a simulation mode that lets the same code run with zero Firebase config in development.
 `,
-    repoUrl: `${REPO}/tree/main/projects/ht-quick-ngxfire`,
+    repoUrl: `${REPO}/tree/HEAD/projects/ht-quick-ngxfire`,
     status: 'in-progress',
   },
   {
@@ -51,7 +51,7 @@ Opinionated Angular 21 wrapper around \`@angular/fire\`: signal-based auth, a th
     description: `
 Capture an image from the browser camera, the native Capacitor camera, a file picker or the photo gallery, and hand it to an uploader you supply. Every source is normalized to one \`CapturedImage\` shape, with optional resize and compression on the browser path.
 `,
-    repoUrl: `${REPO}/tree/main/projects/ht-camera-upload`,
+    repoUrl: `${REPO}/tree/HEAD/projects/ht-camera-upload`,
     status: 'in-progress',
   },
 ];

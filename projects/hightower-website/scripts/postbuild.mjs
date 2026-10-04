@@ -1,6 +1,6 @@
 // Runs after `ng build hightower-website`: asserts every expected page was prerendered,
 // copies the not-found page to 404.html, and writes sitemap.xml and robots.txt.
-import { access, copyFile, writeFile } from 'node:fs/promises';
+import { access, copyFile, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -17,6 +17,19 @@ export function expectedRoutes(projects, products) {
 
 export function forbiddenRoutes(projects) {
   return projects.filter((p) => p.kind === 'product').map((p) => `/portfolio/${p.slug}`);
+}
+
+/** Product-kind projects have no portfolio page; firebase.json must 301 them to /products/<productSlug>. */
+export function missingRedirects(projects, redirects) {
+  return projects
+    .filter((p) => p.kind === 'product')
+    .filter(
+      (p) =>
+        !redirects.some(
+          (r) => r.source === `/portfolio/${p.slug}` && r.destination === `/products/${p.productSlug}` && r.type === 301,
+        ),
+    )
+    .map((p) => `/portfolio/${p.slug}`);
 }
 
 export function routeFile(route) {
@@ -45,8 +58,13 @@ async function exists(path) {
   }
 }
 
-export async function postbuild({ browserDir, site, projects, products }) {
+export async function postbuild({ browserDir, site, projects, products, redirects }) {
   const routes = expectedRoutes(projects, products);
+
+  const unredirected = missingRedirects(projects, redirects);
+  if (unredirected.length) {
+    throw new Error(`postbuild: firebase.json is missing 301 redirects for: ${unredirected.join(', ')}`);
+  }
 
   const missing = [];
   for (const route of routes) if (!(await exists(join(browserDir, routeFile(route))))) missing.push(route);
@@ -71,7 +89,9 @@ async function main() {
     import('../content/products.mts'),
   ]);
   const browserDir = fileURLToPath(new URL('../dist/browser', import.meta.url));
-  const routes = await postbuild({ browserDir, site, projects, products });
+  const firebaseJson = JSON.parse(await readFile(new URL('../firebase.json', import.meta.url), 'utf8'));
+  const redirects = firebaseJson.hosting.redirects ?? [];
+  const routes = await postbuild({ browserDir, site, projects, products, redirects });
   console.log(`postbuild: verified ${routes.length} pages; wrote 404.html, sitemap.xml, robots.txt`);
 }
 
