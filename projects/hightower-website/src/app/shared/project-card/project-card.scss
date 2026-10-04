@@ -1,0 +1,32 @@
+:host { display: block; height: 100%; }
+
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--hs-surface);
+  border: 1px solid var(--hs-line);
+  color: var(--hs-ivory);
+  text-decoration: none;
+  transition: border-color 150ms ease;
+
+  &:hover { color: var(--hs-ivory); border-color: var(--hs-gold); }
+  &[data-kind='product'] { background: #0D1430; border-color: #3B3470; }
+  &[data-kind='product']:hover { border-color: var(--hs-violet); }
+  &[data-kind='client']:hover { border-color: var(--hs-blue); }
+}
+
+.card__image { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; object-position: center 30%; }
+
+.card__body { display: flex; flex-direction: column; gap: 12px; padding: 28px 32px 32px; flex: 1; }
+
+.card__meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+.card__name { font-size: clamp(24px, 3vw, 30px); letter-spacing: 0.04em; }
+
+.card__summary { color: var(--hs-muted); line-height: 1.6; }
+
+.card__cta { margin-top: auto; color: var(--hs-gold); }
+.card[data-kind='product'] .card__cta { color: var(--hs-violet-text); }
+.card[data-kind='client'] .card__cta { color: var(--hs-blue-text); }

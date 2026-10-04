@@ -1,0 +1,19 @@
+<a class="card" [attr.data-kind]="project().kind" [routerLink]="link()">
+  @if (project().images[0]; as image) {
+    <img class="card__image" [src]="image.src" [alt]="image.alt" loading="lazy" width="1280" height="560">
+  } @else {
+    <div class="card__image hs-placeholder" aria-hidden="true">{{ project().name }}</div>
+  }
+  <div class="card__body">
+    <div class="card__meta">
+      <span class="hs-tag" [class]="'hs-tag--' + project().kind">{{ kindLabel() }}</span>
+      <span class="hs-meta">{{ statusLabel() }}</span>
+    </div>
+    <h3 class="card__name">{{ project().name }}</h3>
+    @if (project().kind === 'product') {
+      <p class="hs-meta card__tagline">{{ project().tagline }}</p>
+    }
+    <p class="card__summary">{{ project().summary }}</p>
+    <span class="hs-link-arrow card__cta">{{ cta() }} <span aria-hidden="true">→</span></span>
+  </div>
+</a>

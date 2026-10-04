@@ -1,0 +1,18 @@
+hs-html-content { display: block; }
+
+hs-html-content .prose {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 740px;
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--hs-soft);
+
+  h2 { font-size: clamp(24px, 3vw, 32px); color: var(--hs-ivory); margin-top: 8px; }
+  h3 { font-size: 22px; color: var(--hs-ivory); margin-top: 8px; }
+  ul, ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+  code { font-family: var(--hs-font-mono); font-size: 0.88em; color: var(--hs-gold-pale); }
+  pre { margin: 0; padding: 16px; background: var(--hs-deep); border: 1px solid var(--hs-line); overflow-x: auto; }
+  blockquote { margin: 0; padding-left: 20px; border-left: 2px solid var(--hs-gold); }
+}
