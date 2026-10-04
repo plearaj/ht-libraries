@@ -7,6 +7,8 @@ import {
   withRouterConfig,
 } from '@angular/router';
 import { routes } from './app.routes';
+import { ContentRepository } from './content/content-repository';
+import { StaticContentRepository } from './content/static-content-repository';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,5 +20,6 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
     ),
     provideClientHydration(withEventReplay()),
+    { provide: ContentRepository, useClass: StaticContentRepository },
   ],
 };
