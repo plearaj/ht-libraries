@@ -1,0 +1,16 @@
+<a class="skip-link" href="#main" (click)="skipToMain($event)">Skip to content</a>
+<mat-sidenav-container class="shell">
+  <mat-sidenav id="mobile-menu" mode="over" [(opened)]="menuOpen" position="end" class="drawer">
+    <nav class="drawer__nav" aria-label="Mobile">
+      @for (link of links; track link.path) {
+        <a [routerLink]="link.path" routerLinkActive="is-active" ariaCurrentWhenActive="page">{{ link.label }}</a>
+      }
+      <a class="hs-btn" routerLink="/contact">Start a project</a>
+    </nav>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <hs-site-header [companyName]="site().companyName" [menuExpanded]="menuOpen()" (menuOpen)="menuOpen.set(true)" />
+    <main id="main" #main tabindex="-1"><router-outlet /></main>
+    <hs-site-footer [site]="site()" />
+  </mat-sidenav-content>
+</mat-sidenav-container>

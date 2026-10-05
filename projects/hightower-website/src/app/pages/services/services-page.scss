@@ -1,0 +1,13 @@
+.services { display: flex; flex-direction: column; gap: 32px; }
+.service {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: clamp(24px, 4vw, 48px);
+  background: var(--hs-surface);
+  border: 1px solid var(--hs-line);
+  border-top: 1px solid var(--hs-gold);
+  scroll-margin-top: 24px;
+}
+.service__name { font-size: clamp(26px, 3.4vw, 34px); }
+.service__cta { align-self: flex-start; }

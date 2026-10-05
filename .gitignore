@@ -84,3 +84,7 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+
+# hightower-website
+/projects/hightower-website/dist
+/projects/hightower-website/src/app/content/content.generated.ts

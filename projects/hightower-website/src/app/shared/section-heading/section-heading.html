@@ -1,0 +1,11 @@
+<p class="hs-eyebrow">{{ eyebrow() }}</p>
+@if (level() === 1) {
+  <h1 class="heading heading--page">{{ heading() }}</h1>
+} @else {
+  <h2 class="heading">{{ heading() }}</h2>
+}
+<div class="divider" aria-hidden="true">
+  <span class="divider__rule"></span>
+  <svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z" /></svg>
+  <span class="divider__rule"></span>
+</div>

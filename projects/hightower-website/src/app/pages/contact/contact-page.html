@@ -1,0 +1,102 @@
+<section class="hs-container contact">
+  <div class="intro">
+    <p class="hs-eyebrow">Contact</p>
+    <h1 class="intro__title">Tell us what you're building.</h1>
+    <p class="hs-lead">
+      A few sentences is plenty — what it is, who it's for, and roughly when you need it.
+      Expect a reply within {{ site().responseTime }}.
+    </p>
+    <dl class="details">
+      <div class="details__row">
+        <dt class="hs-meta">Email</dt>
+        <dd><a [href]="'mailto:' + site().email">{{ site().email }}</a></dd>
+      </div>
+      <div class="details__row">
+        <dt class="hs-meta">Elsewhere</dt>
+        <dd class="details__socials">
+          @for (social of site().socials; track social.url) {
+            <a [href]="social.url" target="_blank" rel="noopener noreferrer">{{ social.label }}</a>
+          }
+        </dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="panel">
+    @if (state() === 'sent') {
+      <div class="thanks" #thanks tabindex="-1">
+        <h2>Thank you.</h2>
+        <p>Your message is on its way. Expect a reply within {{ site().responseTime }}.</p>
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="row">
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" autocomplete="name" maxlength="100" required>
+            <mat-error>{{ errorFor('name') }}</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" autocomplete="email" maxlength="254" required>
+            <mat-error>{{ errorFor('email') }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Company (optional)</mat-label>
+          <input matInput formControlName="company" autocomplete="organization" maxlength="100">
+          <mat-error>{{ errorFor('company') }}</mat-error>
+        </mat-form-field>
+
+        <div class="topics">
+          <span id="topic-label" class="topics__label">I'm interested in</span>
+          <mat-radio-group formControlName="topic" aria-labelledby="topic-label" class="topics__group">
+            @for (topic of topics(); track topic.value) {
+              <mat-radio-button [value]="topic.value">{{ topic.label }}</mat-radio-button>
+            }
+          </mat-radio-group>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Message</mat-label>
+          <textarea matInput formControlName="message" rows="6" maxlength="5000" required></textarea>
+          <mat-error>{{ errorFor('message') }}</mat-error>
+        </mat-form-field>
+
+        <div class="hp" aria-hidden="true">
+          <label for="hp_field_x">Leave this field empty</label>
+          <input id="hp_field_x" name="hp_field_x" type="text" tabindex="-1" autocomplete="off" formControlName="honeypot">
+        </div>
+
+        <div class="footer">
+          <span class="footer__note">Protected by reCAPTCHA (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">Terms</a>). Your message is only used to reply to you.</span>
+          <button type="submit" class="hs-btn" [disabled]="state() === 'submitting'">
+            @if (state() === 'submitting') {
+              <mat-progress-spinner mode="indeterminate" diameter="18" aria-hidden="true" />
+              Sending…
+            } @else {
+              Send message
+            }
+          </button>
+        </div>
+      </form>
+    }
+    <div role="status" aria-live="polite" class="status">
+      @switch (state()) {
+        @case ('failed') {
+          <p class="status__error">
+            Something went wrong sending your message. Please try again, or email
+            <a [href]="'mailto:' + site().email">{{ site().email }}</a>.
+          </p>
+        }
+        @case ('offline') {
+          <p class="status__error">
+            You appear to be offline. Check your connection and try again, or email
+            <a [href]="'mailto:' + site().email">{{ site().email }}</a>.
+          </p>
+        }
+      }
+    </div>
+  </div>
+</section>

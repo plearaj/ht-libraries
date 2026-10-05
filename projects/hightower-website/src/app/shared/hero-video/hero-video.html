@@ -1,0 +1,34 @@
+@if (sources().length > 0) {
+  <video
+    #video
+    class="hero__media"
+    muted
+    loop
+    playsinline
+    preload="metadata"
+    aria-hidden="true"
+    [attr.poster]="poster().src"
+    (play)="playing.set(true)"
+    (pause)="playing.set(false)">
+    @for (source of sources(); track source.src) {
+      <source [src]="source.src" [type]="source.type">
+    }
+  </video>
+} @else {
+  <img class="hero__media" [src]="poster().src" [alt]="poster().alt" fetchpriority="high">
+}
+<div class="hero__scrim" aria-hidden="true"></div>
+<div class="hero__content"><ng-content /></div>
+@if (sources().length > 0) {
+  <button
+    type="button"
+    class="hero__toggle"
+    [attr.aria-label]="playing() ? 'Pause background video' : 'Play background video'"
+    (click)="toggle()">
+    @if (playing()) {
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" /></svg>
+    } @else {
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+    }
+  </button>
+}

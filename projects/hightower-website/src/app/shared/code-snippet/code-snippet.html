@@ -1,0 +1,7 @@
+<div class="snippet">
+  <div class="snippet__header">
+    <span class="snippet__lang">{{ language() }}</span>
+    <button type="button" class="snippet__copy" (click)="copy()">{{ copied() ? 'Copied' : 'Copy' }}</button>
+  </div>
+  <pre><code>{{ code() }}</code></pre>
+</div>

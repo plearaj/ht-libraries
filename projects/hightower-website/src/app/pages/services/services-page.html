@@ -1,0 +1,16 @@
+<section class="hs-band">
+  <div class="hs-container">
+    <hs-section-heading eyebrow="What we do" heading="Services" [level]="1" />
+    <div class="services">
+      @for (service of services(); track service.slug) {
+        <article class="service" [id]="service.slug">
+          <h2 class="service__name">{{ service.name }}</h2>
+          <p class="hs-lead">{{ service.summary }}</p>
+          <hs-html-content [html]="service.descriptionHtml" />
+          <a class="hs-btn service__cta" routerLink="/contact" [queryParams]="{ topic: service.slug }">Ask about {{ service.name }}</a>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+<hs-cta-band heading="Not sure which fits? Tell us what you're building." />

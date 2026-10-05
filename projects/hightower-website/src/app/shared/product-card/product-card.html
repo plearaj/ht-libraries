@@ -1,0 +1,12 @@
+<a class="card" [routerLink]="['/products', product().slug]">
+  <div class="card__meta">
+    <span class="hs-tag" [class]="tagClass()">{{ kindLabel() }}</span>
+    <span class="hs-meta">{{ statusLabel() }}</span>
+  </div>
+  <h3 class="card__name" [class.card__name--mono]="product().kind === 'library'">{{ product().name }}</h3>
+  <p class="card__summary">{{ product().summary }}</p>
+  @if (product().install; as install) {
+    <code class="card__install">{{ install }}</code>
+  }
+  <span class="hs-link-arrow card__cta">Details <span aria-hidden="true">→</span></span>
+</a>
